@@ -2,8 +2,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BenliklerStack from './BenliklerStack'; 
 import SohbetStack from './SohbetStack';
+import ProfilStack from './ProfilStack';
 import AnalizScreen from '../screens/AnalizScreen';
-import ProfilScreen from '../screens/ProfilScreen';
 import { Ionicons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator();
@@ -35,7 +35,7 @@ export default function TabNavigator() {
       <Tab.Screen name="Benlikler" component={BenliklerStack} />
       <Tab.Screen name="Sohbet" component={SohbetStack} />
       <Tab.Screen name="Analiz" component={AnalizScreen} />
-      <Tab.Screen name="Profil" component={ProfilScreen} />
+      <Tab.Screen name="Profil" component={ProfilStack} />
     </Tab.Navigator>
   );
 }
