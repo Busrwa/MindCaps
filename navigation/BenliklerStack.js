@@ -2,7 +2,6 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import BenliklerScreen from '../screens/BenliklerScreen';
 import GecmisBenlikScreen from '../screens/benlikler/GecmisBenlikScreen';
-// Gerekirse aşağıdaki ekranları da ekleyebilirsin:
 import SimdikiBenlikScreen from '../screens/benlikler/SimdikiBenlikScreen';
 import GelecekBenlikScreen from '../screens/benlikler/GelecekBenlikScreen';
 

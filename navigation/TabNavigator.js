@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BenliklerStack from './BenliklerStack'; 
-import SohbetScreen from '../screens/SohbetScreen';
+import SohbetStack from './SohbetStack';
 import AnalizScreen from '../screens/AnalizScreen';
 import ProfilScreen from '../screens/ProfilScreen';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,13 +27,13 @@ export default function TabNavigator() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#6200ee',
+        tabBarActiveTintColor: '#2E7D32',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
       })}
     >
       <Tab.Screen name="Benlikler" component={BenliklerStack} />
-      <Tab.Screen name="Sohbet" component={SohbetScreen} />
+      <Tab.Screen name="Sohbet" component={SohbetStack} />
       <Tab.Screen name="Analiz" component={AnalizScreen} />
       <Tab.Screen name="Profil" component={ProfilScreen} />
     </Tab.Navigator>

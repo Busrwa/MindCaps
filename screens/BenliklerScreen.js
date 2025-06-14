@@ -11,7 +11,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
-const CARD_HEIGHT = width * 0.6;
+const CARD_HEIGHT = width * 0.55;
 
 const data = [
   {
@@ -34,29 +34,39 @@ const data = [
 export default function BenliklerScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
+  // SohbetAnalizScreen’deki gibi min 12 max 28 paddingTop sınırı
+  const paddingTop = Math.min(Math.max(insets.top, 12), 28);
+
   const handlePress = (screen) => {
     navigation.navigate(screen);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.header, { paddingTop: insets.top || 20 }]}>
+      <View style={[styles.header, { paddingTop }]}>
         <Text style={styles.headerTitle}>Benlikler</Text>
+        <Text style={styles.headerSubtitle}>
+          Hangi benliğinle konuşmak istersin?
+        </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {data.map((item, index) => (
           <View key={index} style={styles.cardWrapper}>
             <ImageBackground
               source={item.image}
               style={styles.card}
-              imageStyle={{ borderRadius: 12 }}
+              imageStyle={{ borderRadius: 18 }}
             >
               <View style={styles.overlay}>
                 <Text style={styles.title}>{item.title}</Text>
                 <TouchableOpacity
                   style={styles.button}
                   onPress={() => handlePress(item.screen)}
+                  activeOpacity={0.8}
                 >
                   <Text style={styles.buttonText}>Sohbeti Başlat</Text>
                 </TouchableOpacity>
@@ -72,59 +82,71 @@ export default function BenliklerScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F8F8',
   },
   header: {
     alignItems: 'center',
-    paddingBottom: 12,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#ddd',
     backgroundColor: '#fff',
+    paddingHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#5f2c82',
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: '#666',
+    marginTop: 6,
+    textAlign: 'center',
   },
   scrollContent: {
-    paddingBottom: 20,
+    flexGrow: 1,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    justifyContent: 'flex-start',
   },
   cardWrapper: {
-    marginVertical: 10,
-    paddingHorizontal: 16,
+    marginBottom: 20,
   },
   card: {
     width: '100%',
     height: CARD_HEIGHT,
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: 'hidden',
+    elevation: 4,
   },
   overlay: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.42)',
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12,
-    padding: 10,
+    borderRadius: 18,
+    padding: 18,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     color: '#fff',
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textShadowColor: '#000',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
+    fontWeight: '700',
+    marginBottom: 16,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   button: {
     backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 14,
+    elevation: 3,
   },
   buttonText: {
-    color: '#000',
+    color: '#2E7D32',
     fontWeight: '600',
+    fontSize: 16,
   },
 });

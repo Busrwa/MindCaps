@@ -16,7 +16,7 @@ export default function RootNavigator() {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="MainApp" component={TabNavigator} />
+      <Stack.Screen name="TabNavigator" component={TabNavigator} />
     </Stack.Navigator>
   );
 }
