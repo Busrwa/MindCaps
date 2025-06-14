@@ -17,25 +17,25 @@ const data = [
   {
     title: 'Geçmiş Benlik',
     image: require('../assets/gecmis.png'),
-    type: 'Geçmiş',
+    screen: 'GecmisBenlik',
   },
   {
     title: 'Şimdiki Benlik',
     image: require('../assets/simdi.png'),
-    type: 'Şimdi',
+    screen: 'SimdikiBenlik',
   },
   {
     title: 'Gelecek Benlik',
     image: require('../assets/gelecek.png'),
-    type: 'Gelecek',
+    screen: 'GelecekBenlik',
   },
 ];
 
 export default function BenliklerScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
-  const handlePress = (type) => {
-    navigation.navigate('Sohbet', { type });
+  const handlePress = (screen) => {
+    navigation.navigate(screen);
   };
 
   return (
@@ -47,10 +47,17 @@ export default function BenliklerScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {data.map((item, index) => (
           <View key={index} style={styles.cardWrapper}>
-            <ImageBackground source={item.image} style={styles.card} imageStyle={{ borderRadius: 12 }}>
+            <ImageBackground
+              source={item.image}
+              style={styles.card}
+              imageStyle={{ borderRadius: 12 }}
+            >
               <View style={styles.overlay}>
                 <Text style={styles.title}>{item.title}</Text>
-                <TouchableOpacity style={styles.button} onPress={() => handlePress(item.type)}>
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={() => handlePress(item.screen)}
+                >
                   <Text style={styles.buttonText}>Sohbeti Başlat</Text>
                 </TouchableOpacity>
               </View>

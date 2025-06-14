@@ -1,0 +1,2 @@
+// config.js
+export const OPENAI_API_KEY = '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';

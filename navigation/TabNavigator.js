@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import BenliklerScreen from '../screens/BenliklerScreen';
+import BenliklerStack from './BenliklerStack'; 
 import SohbetScreen from '../screens/SohbetScreen';
 import AnalizScreen from '../screens/AnalizScreen';
 import ProfilScreen from '../screens/ProfilScreen';
@@ -32,7 +32,7 @@ export default function TabNavigator() {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Benlikler" component={BenliklerScreen} />
+      <Tab.Screen name="Benlikler" component={BenliklerStack} />
       <Tab.Screen name="Sohbet" component={SohbetScreen} />
       <Tab.Screen name="Analiz" component={AnalizScreen} />
       <Tab.Screen name="Profil" component={ProfilScreen} />
