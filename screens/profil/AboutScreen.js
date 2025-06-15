@@ -9,13 +9,16 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useLanguage } from '../../LanguageContext';
+import { translations } from '../../translations';
 
 const { width: screenWidth } = Dimensions.get('window');
-const ICON_SIZE = 24;
 
 export default function AboutScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const paddingTop = Math.min(Math.max(insets.top, 16), 28) + 8;
+  const { language } = useLanguage();
+  const t = translations[language];
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -30,46 +33,27 @@ export default function AboutScreen({ navigation }) {
           >
             <View style={styles.backContent}>
               <Ionicons name="arrow-back" size={22} color="#2E7D32" />
-              <Text style={styles.backButtonText}>Geri</Text>
+              <Text style={styles.backButtonText}>{t.back}</Text>
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Hakkında</Text>
-
+          <Text style={styles.headerTitle}>{t.about}</Text>
           <View style={styles.spacer} />
         </View>
 
         {/* İçerik Kartı */}
         <View style={styles.card}>
-          <Text style={styles.title}>MindCaps Nedir?</Text>
-          <Text style={styles.text}>
-            MindCaps, yapay zeka destekli bir rehberlik uygulamasıdır. Kullanıcıların geçmiş, şimdiki ve gelecekteki benlikleriyle
-            etkileşim kurarak içsel keşiflerini destekler. Sesli, yazılı veya görsel olarak ifade edilen duygular, yapay zeka tarafından
-            analiz edilir ve yansıtıcı, empatik sorularla kişisel farkındalık süreçlerine rehberlik edilir.
-          </Text>
+          <Text style={styles.title}>{t.whatIsMindcapsTitle}</Text>
+          <Text style={styles.text}>{t.whatIsMindcapsDesc}</Text>
 
-          <Text style={styles.subtitle}>Temel Özellikler</Text>
-          <Text style={styles.text}>
-            • Geçmiş benlik ile kişilik simülasyonu ve içsel çocuk diyaloğu {'\n'}
-            • Şimdiki benliğe özel duygu haritası çıkarımı {'\n'}
-            • Gelecek benlikten motive edici senaryolar ve yönlendirmeler {'\n'}
-            • Psikologlar tarafından denetlenebilir esnek yapay zeka sistemi {'\n'}
-            • Mahremiyet ve etik değerlere tam uyum
-          </Text>
+          <Text style={styles.subtitle}>{t.keyFeaturesTitle}</Text>
+          <Text style={styles.text}>{t.keyFeaturesDesc}</Text>
 
-          <Text style={styles.subtitle}>Kimler İçin Uygun?</Text>
-          <Text style={styles.text}>
-            • Geçmiş travmalarıyla yüzleşmek isteyenler {'\n'}
-            • Duygusal farkındalık kazanmak isteyen bireyler {'\n'}
-            • Geleceğe yönelik yön bulmak isteyenler {'\n'}
-            • Geleneksel terapiye erişimi kısıtlı kullanıcılar
-          </Text>
+          <Text style={styles.subtitle}>{t.whoIsItForTitle}</Text>
+          <Text style={styles.text}>{t.whoIsItForDesc}</Text>
 
-          <Text style={styles.subtitle}>Güvenlik ve Etik</Text>
-          <Text style={styles.text}>
-            MindCaps, terapi amacıyla değil, rehberlik amacıyla geliştirilmiştir. Yapay zeka yalnızca yansıtıcı ve destekleyici
-            bir rol üstlenir. Tüm kullanıcı verileri anonimleştirilerek saklanır.
-          </Text>
+          <Text style={styles.subtitle}>{t.safetyEthicsTitle}</Text>
+          <Text style={styles.text}>{t.safetyEthicsDesc}</Text>
         </View>
 
       </ScrollView>

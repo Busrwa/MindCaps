@@ -10,9 +10,15 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import { useLanguage } from '../../LanguageContext'; // Yolunu kendi projenize göre ayarla
+import { translations } from '../../translations';
+
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function TermsScreen({ navigation }) {
+  const { language } = useLanguage();
+  const t = translations[language];
+
   const insets = useSafeAreaInsets();
   const paddingTop = Math.min(Math.max(insets.top, 16), 28) + 8;
 
@@ -31,47 +37,27 @@ export default function TermsScreen({ navigation }) {
           >
             <View style={styles.backContent}>
               <Ionicons name="arrow-back" size={22} color="#2E7D32" />
-              <Text style={styles.backButtonText}>Geri</Text>
+              <Text style={styles.backButtonText}>{t.back}</Text>
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Şartlar ve Koşullar</Text>
+          <Text style={styles.headerTitle}>{t.termsTitle}</Text>
 
           <View style={styles.spacer} />
         </View>
 
         {/* İçerik Kartı */}
         <View style={styles.card}>
-          <Text style={styles.title}>Uygulama Kullanım Şartları</Text>
+          <Text style={styles.title}>{t.termsHeader}</Text>
 
-          <Text style={styles.text}>
-            Lütfen uygulamamızı kullanmadan önce aşağıdaki şartları dikkatlice okuyunuz. Uygulamayı kullanarak bu şartları kabul etmiş sayılırsınız.
-          </Text>
+          <Text style={styles.text}>{t.termsIntro}</Text>
 
-          <Text style={styles.subtitle}>1. Kullanım Amacı</Text>
-          <Text style={styles.text}>
-            MindCaps, rehberlik amaçlıdır ve profesyonel terapi ya da tıbbi teşhis yerine geçmez.
-          </Text>
-
-          <Text style={styles.subtitle}>2. Sorumluluk Reddi</Text>
-          <Text style={styles.text}>
-            Uygulama kullanımından kaynaklanabilecek herhangi bir zarardan MindCaps sorumlu tutulamaz.
-          </Text>
-
-          <Text style={styles.subtitle}>3. Kullanıcı Yükümlülükleri</Text>
-          <Text style={styles.text}>
-            Kullanıcılar, uygulamayı yasal ve etik kurallara uygun şekilde kullanmayı kabul eder.
-          </Text>
-
-          <Text style={styles.subtitle}>4. Güncellemeler</Text>
-          <Text style={styles.text}>
-            Şartlar ve koşullar zaman içinde değişebilir, güncellemeler uygulama içinde duyurulur.
-          </Text>
-
-          <Text style={styles.subtitle}>5. Erişimin Sonlandırılması</Text>
-          <Text style={styles.text}>
-            Şartların ihlali durumunda kullanıcıların uygulamaya erişimi sonlandırılabilir.
-          </Text>
+          {t.termsSections.map((section, index) => (
+            <View key={index}>
+              <Text style={styles.subtitle}>{section.title}</Text>
+              <Text style={styles.text}>{section.text}</Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>

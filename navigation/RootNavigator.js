@@ -7,6 +7,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import TabNavigator from './TabNavigator';
 
+
 const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {

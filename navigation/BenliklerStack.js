@@ -5,6 +5,7 @@ import GecmisBenlikScreen from '../screens/benlikler/GecmisBenlikScreen';
 import SimdikiBenlikScreen from '../screens/benlikler/SimdikiBenlikScreen';
 import GelecekBenlikScreen from '../screens/benlikler/GelecekBenlikScreen';
 
+
 const Stack = createNativeStackNavigator();
 
 export default function BenliklerStack() {

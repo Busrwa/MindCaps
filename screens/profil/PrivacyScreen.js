@@ -9,12 +9,19 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useLanguage } from '../../LanguageContext'; // Dil context'ini kendi yapına göre ayarla
+import { translations } from '../../translations';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function PrivacyPolicyScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const paddingTop = Math.min(Math.max(insets.top, 16), 28) + 8;
+
+  const { language } = useLanguage();
+  const t = translations[language].sections;
+  const backText = translations[language].back;
+  const title = translations[language].privacyTitle;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -28,65 +35,39 @@ export default function PrivacyPolicyScreen({ navigation }) {
           >
             <View style={styles.backContent}>
               <Ionicons name="arrow-back" size={22} color="#2E7D32" />
-              <Text style={styles.backButtonText}>Geri</Text>
+              <Text style={styles.backButtonText}>{backText}</Text>
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Gizlilik Politikası</Text>
+          <Text style={styles.headerTitle}>{title}</Text>
 
           <View style={styles.spacer} />
         </View>
 
         {/* Gizlilik Politikası Metni */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Kişisel Verilerin Korunması</Text>
-          <Text style={styles.text}>
-            MindCaps olarak kullanıcılarımızın gizliliğine büyük önem veriyoruz. Kişisel verileriniz, sadece uygulamanın sağlıklı çalışması,
-            size daha iyi hizmet sunabilmemiz ve yasal yükümlülüklerimizin yerine getirilmesi amacıyla toplanmakta ve işlenmektedir.
-          </Text>
+          <Text style={styles.sectionTitle}>{t.personalData}</Text>
+          <Text style={styles.text}>{t.personalDataText}</Text>
 
-          <Text style={styles.sectionTitle}>Veri Toplama ve Kullanımı</Text>
-          <Text style={styles.text}>
-            Uygulamamızda toplanan veriler şunlardır:{'\n'}
-            - Kullanıcı kimlik bilgileri {'\n'}
-            - Uygulama kullanım verileri {'\n'}
-            - Cihaz bilgileri ve teknik veriler {'\n'}
-            Bu veriler yalnızca belirtilen amaçlar doğrultusunda kullanılacaktır.
-          </Text>
+          <Text style={styles.sectionTitle}>{t.dataCollection}</Text>
+          <Text style={styles.text}>{t.dataCollectionText}</Text>
 
-          <Text style={styles.sectionTitle}>Veri Güvenliği</Text>
-          <Text style={styles.text}>
-            Tüm kişisel verileriniz, uluslararası standartlarda güvenlik önlemleriyle korunmaktadır.
-            Veri sızıntılarını önlemek için teknik ve idari tedbirler uygulanmaktadır.
-          </Text>
+          <Text style={styles.sectionTitle}>{t.dataSecurity}</Text>
+          <Text style={styles.text}>{t.dataSecurityText}</Text>
 
-          <Text style={styles.sectionTitle}>Üçüncü Taraflarla Paylaşım</Text>
-          <Text style={styles.text}>
-            Kişisel verileriniz, açık rızanız olmadan üçüncü taraflarla paylaşılmaz.
-            Yalnızca yasal zorunluluklar ve hizmet sağlamak için gerekli durumlarda paylaşım yapılabilir.
-          </Text>
+          <Text style={styles.sectionTitle}>{t.thirdParties}</Text>
+          <Text style={styles.text}>{t.thirdPartiesText}</Text>
 
-          <Text style={styles.sectionTitle}>Çerezler ve İzleme Teknolojileri</Text>
-          <Text style={styles.text}>
-            Uygulama içerisinde çerez veya benzeri izleme teknolojileri kullanılmamaktadır.
-            Ancak dış bağlantılar üzerinden bu tür teknolojiler aktif olabilir.
-          </Text>
+          <Text style={styles.sectionTitle}>{t.cookies}</Text>
+          <Text style={styles.text}>{t.cookiesText}</Text>
 
-          <Text style={styles.sectionTitle}>Kullanıcı Hakları</Text>
-          <Text style={styles.text}>
-            Kişisel verilerinize erişme, düzeltme, silme ve işlemeyi kısıtlama haklarınız bulunmaktadır.
-            Bu haklarınızı kullanmak için bizimle iletişime geçebilirsiniz.
-          </Text>
+          <Text style={styles.sectionTitle}>{t.userRights}</Text>
+          <Text style={styles.text}>{t.userRightsText}</Text>
 
-          <Text style={styles.sectionTitle}>Gizlilik Politikası Değişiklikleri</Text>
-          <Text style={styles.text}>
-            Gizlilik politikamızda yapılacak değişiklikler bu sayfa üzerinden duyurulacaktır.
-            Politikanın güncel halini düzenli olarak kontrol etmeniz tavsiye edilir.
-          </Text>
+          <Text style={styles.sectionTitle}>{t.policyChanges}</Text>
+          <Text style={styles.text}>{t.policyChangesText}</Text>
 
-          <Text style={[styles.text, { marginTop: 20 }]}>
-            Son Güncelleme: Haziran 2025
-          </Text>
+          <Text style={[styles.text, { marginTop: 20 }]}>{t.lastUpdate}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

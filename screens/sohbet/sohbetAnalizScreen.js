@@ -11,15 +11,17 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PieChart } from 'react-native-chart-kit';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useLanguage } from '../../LanguageContext'; 
+import { translations } from '../../translations';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const EMOTIONS_DATA = [
-  { name: 'Sevinç', population: 20, color: '#f39c12' },
-  { name: 'Üzüntü', population: 20, color: '#2980b9' },
-  { name: 'Korku', population: 20, color: '#8e44ad' },
-  { name: 'Öfke', population: 20, color: '#c0392b' },
-  { name: 'Sürpriz', population: 20, color: '#27ae60' },
+  { nameKey: 'joy', population: 20, color: '#f39c12' },
+  { nameKey: 'sadness', population: 20, color: '#2980b9' },
+  { nameKey: 'fear', population: 20, color: '#8e44ad' },
+  { nameKey: 'anger', population: 20, color: '#c0392b' },
+  { nameKey: 'surprise', population: 20, color: '#27ae60' },
 ];
 
 const chartConfig = {
@@ -34,24 +36,21 @@ const chartConfig = {
 export default function SohbetAnalizScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const paddingTop = Math.min(Math.max(insets.top, 16), 28) + 8;
+  const { language } = useLanguage();
+  const t = translations[language];
 
   const handleSaveAndFinish = () => {
-    Alert.alert('Bilgi', 'Sohbet kaydedildi ve sonlandırıldı.');
+    Alert.alert(t.info, t.chatSavedEnded);
     navigation.goBack();
   };
 
   const handleFinishOnly = () => {
-    Alert.alert(
-      'Bilgi',
-      'Sohbet sonlandırıldı.',
-      [
-        {
-          text: 'Tamam',
-          onPress: () => navigation.navigate('SohbetMain'), // Burada SohbetMain olarak düzelttim
-        },
-      ],
-      { cancelable: false }
-    );
+    Alert.alert(t.info, t.chatEnded, [
+      {
+        text: t.ok,
+        onPress: () => navigation.navigate('SohbetMain'),
+      },
+    ]);
   };
 
   return (
@@ -65,28 +64,27 @@ export default function SohbetAnalizScreen({ navigation }) {
           >
             <View style={styles.backContent}>
               <Ionicons name="arrow-back" size={22} color="#2E7D32" />
-              <Text style={styles.backButtonText}>Geri</Text>
+              <Text style={styles.backButtonText}>{t.back}</Text>
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Sohbet Sonu Analizi</Text>
-
+          <Text style={styles.headerTitle}>{t.chatAnalysis}</Text>
           <View style={styles.spacer} />
         </View>
 
         <View style={styles.body}>
           <View style={styles.aiContainer}>
-            <Text style={styles.subtitle}>AI Değerlendirmesi:</Text>
-            <Text style={styles.aiText}>
-              Bu seans boyunca ağırlıklı olarak yalnızlık ve yönsüzlük temaları ön plana çıktı.
-            </Text>
+            <Text style={styles.subtitle}>{t.aiEvaluation}</Text>
+            <Text style={styles.aiText}>{t.aiEvaluationText}</Text>
           </View>
 
-          <Text style={[styles.subtitle, styles.marginTopLarge]}>Algılanan temel duygular:</Text>
+          <Text style={[styles.subtitle, styles.marginTopLarge]}>
+            {t.detectedEmotions}
+          </Text>
 
           <PieChart
-            data={EMOTIONS_DATA.map(({ name, population, color }) => ({
-              name,
+            data={EMOTIONS_DATA.map(({ nameKey, population, color }) => ({
+              name: t[nameKey],
               population,
               color,
               legendFontColor: '#444',
@@ -104,7 +102,7 @@ export default function SohbetAnalizScreen({ navigation }) {
           />
 
           <Text style={[styles.paragraph, styles.archivePrompt]}>
-            Bu sohbet ‘duygu kapsülü’ olarak arşivlemek ister misin?
+            {t.archivePrompt}
           </Text>
 
           <View style={styles.buttonRow}>
@@ -113,7 +111,7 @@ export default function SohbetAnalizScreen({ navigation }) {
               onPress={handleSaveAndFinish}
               activeOpacity={0.8}
             >
-              <Text style={styles.saveButtonText}>Sohbeti Kaydet ve Bitir</Text>
+              <Text style={styles.saveButtonText}>{t.saveAndFinish}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -121,7 +119,7 @@ export default function SohbetAnalizScreen({ navigation }) {
               onPress={handleFinishOnly}
               activeOpacity={0.8}
             >
-              <Text style={styles.endButtonText}>Sohbeti Bitir</Text>
+              <Text style={styles.endButtonText}>{t.finishOnly}</Text>
             </TouchableOpacity>
           </View>
         </View>

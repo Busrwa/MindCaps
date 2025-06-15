@@ -8,32 +8,34 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
+import { useLanguage } from '../LanguageContext'; // Dil context'i
+import { translations } from '../translations';   // Dil verileri
 
 const { width } = Dimensions.get('window');
 
-const emotions = ['Sevinç', 'Üzüntü', 'Korku', 'Öfke', 'Sürpriz'];
-
-const dailyScores = [20, 20, 20, 20, 20];
-const weeklyScores = [50, 50, 50, 50, 50];
-
-const thematicLabels = ['Öz-değer Düşüklüğü', 'Gelecek Kaygısı', 'Yalnızlık'];
-const thematicWeekly = [20, 20, 20];
-const thematicMonthly = [20, 20, 20];
-
-const benlikData = [
-  { name: 'Gelecek Benlik', population: 20, color: '#6a1b9a' },
-  { name: 'Geçmiş Benlik', population: 20, color: '#00838f' },
-  { name: 'Şimdiki Benlik', population: 20, color: '#ef6c00' },
-];
-
 export default function AnalizScreen() {
   const insets = useSafeAreaInsets();
-
-  // SafeArea üst padding min 12 max 28 arası
   const paddingTop = Math.min(Math.max(insets.top, 12), 28);
 
   const [emotionView, setEmotionView] = useState('daily');
   const [thematicView, setThematicView] = useState('weekly');
+
+  const { language } = useLanguage();
+  const t = translations[language];
+
+  const emotions = ['Joy', 'Sadness', 'Fear', 'Anger', 'Surprise'];
+  const dailyScores = [20, 20, 20, 20, 20];
+  const weeklyScores = [50, 50, 50, 50, 50];
+
+  const thematicLabels = ['Low Self-Esteem', 'Future Anxiety', 'Loneliness'];
+  const thematicWeekly = [20, 20, 20];
+  const thematicMonthly = [20, 20, 20];
+
+  const benlikData = [
+    { name: t.futureSelf, population: 20, color: '#6a1b9a' },
+    { name: t.pastSelf, population: 20, color: '#00838f' },
+    { name: t.presentSelf, population: 20, color: '#ef6c00' },
+  ];
 
   const emotionData = {
     labels: emotions,
@@ -58,19 +60,14 @@ export default function AnalizScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { paddingTop }]}>
-        <Text style={styles.headerTitle}>Analiz</Text>
-        <Text style={styles.headerSubtitle}>
-          Son dönem duygu ve benlik analizlerin
-        </Text>
+        <Text style={styles.headerTitle}>{t.analysis}</Text>
+        <Text style={styles.headerSubtitle}>{t.analysisSubtitle}</Text>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Duygu Haritası */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Duygu Haritası</Text>
+          <Text style={styles.sectionTitle}>{t.emotionMap}</Text>
 
           <View style={styles.toggleRow}>
             <Text
@@ -80,7 +77,7 @@ export default function AnalizScreen() {
                 emotionView === 'daily' && styles.toggleTextActive,
               ]}
             >
-              Günlük
+              {t.daily}
             </Text>
             <Text
               onPress={() => setEmotionView('weekly')}
@@ -89,7 +86,7 @@ export default function AnalizScreen() {
                 emotionView === 'weekly' && styles.toggleTextActive,
               ]}
             >
-              Haftalık
+              {t.weekly}
             </Text>
           </View>
 
@@ -118,7 +115,7 @@ export default function AnalizScreen() {
 
         {/* Tematik Yoğunluk */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tematik Yoğunluk</Text>
+          <Text style={styles.sectionTitle}>{t.thematicIntensity}</Text>
 
           <View style={styles.toggleRow}>
             <Text
@@ -128,7 +125,7 @@ export default function AnalizScreen() {
                 thematicView === 'weekly' && styles.toggleTextActive,
               ]}
             >
-              Haftalık
+              {t.weekly}
             </Text>
             <Text
               onPress={() => setThematicView('monthly')}
@@ -137,7 +134,7 @@ export default function AnalizScreen() {
                 thematicView === 'monthly' && styles.toggleTextActive,
               ]}
             >
-              Aylık
+              {t.monthly}
             </Text>
           </View>
 
@@ -160,16 +157,13 @@ export default function AnalizScreen() {
 
         {/* Terapi Asistanı Yorumu */}
         <View style={[styles.section, styles.commentBox]}>
-          <Text style={styles.sectionTitle}>Terapi Asistanı Yorumu</Text>
-          <Text style={styles.commentText}>
-            Son 5 seansta kendini ifade etme isteğin arttı. Bu, içsel motivasyonunun yükseldiğine işaret ediyor.{'\n'}
-            Şu anda en çok değindiğin tema ‘bağ kurma’.
-          </Text>
+          <Text style={styles.sectionTitle}>{t.assistantComment}</Text>
+          <Text style={styles.commentText}>{t.assistantText}</Text>
         </View>
 
         {/* Benliklerle Etkileşim */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Benliklerle Etkileşim İstatistiği</Text>
+          <Text style={styles.sectionTitle}>{t.selvesInteraction}</Text>
 
           <PieChart
             data={benlikData.map(({ name, population, color }) => ({
@@ -195,22 +189,22 @@ export default function AnalizScreen() {
 
         {/* Sohbet Etkileşimleri */}
         <View style={[styles.section, styles.interactionsContainer]}>
-          <Text style={styles.sectionTitle}>Sohbet Etkileşim Sayıları</Text>
+          <Text style={styles.sectionTitle}>{t.chatStats}</Text>
 
           <View style={styles.interactionsRow}>
             <View style={styles.interactionItem}>
               <Text style={styles.interactionNumber}>14</Text>
-              <Text style={styles.interactionLabel}>Toplam sohbet sayısı</Text>
+              <Text style={styles.interactionLabel}>{t.totalChats}</Text>
             </View>
 
             <View style={styles.interactionItem}>
               <Text style={styles.interactionNumber}>8</Text>
-              <Text style={styles.interactionLabel}>Duygu kapsülü sayısı</Text>
+              <Text style={styles.interactionLabel}>{t.emotionCapsules}</Text>
             </View>
 
             <View style={styles.interactionItem}>
               <Text style={styles.interactionNumber}>21</Text>
-              <Text style={styles.interactionLabel}>Serbest Duygu İfadesi</Text>
+              <Text style={styles.interactionLabel}>{t.freeExpression}</Text>
             </View>
           </View>
         </View>

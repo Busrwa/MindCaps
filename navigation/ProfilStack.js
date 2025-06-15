@@ -6,6 +6,7 @@ import AboutScreen from '../screens/profil/AboutScreen';
 import TermsScreen from '../screens/profil/TermsScreen';
 import PrivacyScreen from '../screens/profil/PrivacyScreen';
 
+
 const Stack = createStackNavigator();
 
 export default function ProfilStack() {

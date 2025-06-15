@@ -9,33 +9,36 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLanguage } from '../LanguageContext';  // yolunu kendine göre ayarla
+import { translations } from '../translations';     // yolunu kendine göre ayarla
 
 const { width } = Dimensions.get('window');
 const CARD_HEIGHT = width * 0.55;
 
-const data = [
-  {
-    title: 'Geçmiş Benlik',
-    image: require('../assets/gecmis.png'),
-    screen: 'GecmisBenlik',
-  },
-  {
-    title: 'Şimdiki Benlik',
-    image: require('../assets/simdi.png'),
-    screen: 'SimdikiBenlik',
-  },
-  {
-    title: 'Gelecek Benlik',
-    image: require('../assets/gelecek.png'),
-    screen: 'GelecekBenlik',
-  },
-];
-
 export default function BenliklerScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { language } = useLanguage();
+  const t = translations[language]; // Seçili dile göre çeviri
 
-  // SohbetAnalizScreen’deki gibi min 12 max 28 paddingTop sınırı
   const paddingTop = Math.min(Math.max(insets.top, 12), 28);
+
+  const data = [
+    {
+      title: t.pastSelf, // "Geçmiş Benlik"
+      image: require('../assets/gecmis.png'),
+      screen: 'GecmisBenlik',
+    },
+    {
+      title: t.presentSelf,
+      image: require('../assets/simdi.png'),
+      screen: 'SimdikiBenlik',
+    },
+    {
+      title: t.futureSelf,
+      image: require('../assets/gelecek.png'),
+      screen: 'GelecekBenlik',
+    },
+  ];
 
   const handlePress = (screen) => {
     navigation.navigate(screen);
@@ -44,10 +47,8 @@ export default function BenliklerScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { paddingTop }]}>
-        <Text style={styles.headerTitle}>Benlikler</Text>
-        <Text style={styles.headerSubtitle}>
-          Hangi benliğinle konuşmak istersin?
-        </Text>
+        <Text style={styles.headerTitle}>{t.selves}</Text>
+        <Text style={styles.headerSubtitle}>{t.selectSelf}</Text>
       </View>
 
       <ScrollView
@@ -68,7 +69,7 @@ export default function BenliklerScreen({ navigation }) {
                   onPress={() => handlePress(item.screen)}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.buttonText}>Sohbeti Başlat</Text>
+                  <Text style={styles.buttonText}>{t.startChat}</Text>
                 </TouchableOpacity>
               </View>
             </ImageBackground>

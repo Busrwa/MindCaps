@@ -12,17 +12,42 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '../LanguageContext';  // Yolunu kendi yapına göre ayarla
+import { translations } from '../translations';    // Yolunu kendi yapına göre ayarla
 
 export default function SohbetScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { language } = useLanguage();
+  const t = translations[language];
 
-  const [messages, setMessages] = useState([
-    { id: '1', text: 'Merhaba! Size nasıl yardımcı olabilirim?', sender: 'bot' },
-  ]);
-  const [inputText, setInputText] = useState('');
   const flatListRef = useRef();
 
-  const sendMessage = () => {
+  const [messages, setMessages] = useState([
+    { id: '1', text: t.initialMessage, sender: 'bot' }
+  ]);
+  const [inputText, setInputText] = useState('');
+
+  // Dil değiştiğinde başlangıç mesajını güncelle
+  useEffect(() => {
+    setMessages([{ id: '1', text: t.initialMessage, sender: 'bot' }]);
+  }, [language]);
+
+  const askAI = async (prompt) => {
+    try {
+      const response = await fetch('http://192.168.0.12:5000/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: prompt, language }),
+      });
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('AI error:', error);
+      return t.aiError;
+    }
+  };
+
+  const sendMessage = async () => {
     if (!inputText.trim()) return;
 
     const userMsg = {
@@ -34,14 +59,15 @@ export default function SohbetScreen({ navigation }) {
     setMessages(prev => [...prev, userMsg]);
     setInputText('');
 
-    setTimeout(() => {
-      const botReply = {
-        id: (Date.now() + 1).toString(),
-        text: `Bunu söylediniz: "${userMsg.text}"`,
-        sender: 'bot',
-      };
-      setMessages(prev => [...prev, botReply]);
-    }, 1000);
+    const botText = await askAI(userMsg.text);
+
+    const botReply = {
+      id: (Date.now() + 1).toString(),
+      text: botText,
+      sender: 'bot',
+    };
+
+    setMessages(prev => [...prev, botReply]);
   };
 
   useEffect(() => {
@@ -66,19 +92,18 @@ export default function SohbetScreen({ navigation }) {
 
   const endChat = () => {
     if (messages.length <= 1) {
-      Alert.alert('Uyarı', 'Henüz bir sohbet gerçekleşmedi.');
+      Alert.alert(t.warning, t.noChatWarning);
       return;
     }
     navigation.navigate('SohbetAnaliz', { messages });
   };
 
-  // Çentik/kamera üst boşluğunu sabit değerle değil safe area ile sınırla:
   const paddingTop = Math.min(Math.max(insets.top, 12), 28);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { paddingTop }]}>
-        <Text style={styles.headerTitle}>Sohbet</Text>
+        <Text style={styles.headerTitle}>{t.chatTitle}</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -91,19 +116,23 @@ export default function SohbetScreen({ navigation }) {
           data={messages}
           keyExtractor={item => item.id}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 16,
+            paddingBottom: 10,
+          }}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           showsVerticalScrollIndicator={false}
         />
 
         <TouchableOpacity style={styles.endChatButton} onPress={endChat}>
-          <Text style={styles.endChatButtonText}>Sohbeti Sonlandır</Text>
+          <Text style={styles.endChatButtonText}>{t.endChat}</Text>
         </TouchableOpacity>
 
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Mesajınızı yazın..."
+            placeholder={t.inputPlaceholder}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -122,10 +151,7 @@ export default function SohbetScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F8F8F8',
-  },
+  safeArea: { flex: 1, backgroundColor: '#F8F8F8' },
   header: {
     alignItems: 'center',
     paddingBottom: 12,
@@ -138,10 +164,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2E7D32',
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F8F8',
-  },
+  container: { flex: 1, backgroundColor: '#F8F8F8' },
   messageContainer: {
     maxWidth: '75%',
     marginVertical: 6,
@@ -163,12 +186,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
-  userText: {
-    color: '#fff',
-  },
-  botText: {
-    color: '#222',
-  },
+  userText: { color: '#fff' },
+  botText: { color: '#222' },
   endChatButton: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
