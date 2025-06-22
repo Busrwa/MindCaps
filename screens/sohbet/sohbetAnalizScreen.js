@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,103 +7,229 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PieChart } from 'react-native-chart-kit';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useLanguage } from '../../LanguageContext'; 
+
 import { translations } from '../../translations';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const EMOTIONS_DATA = [
-  { nameKey: 'joy', population: 20, color: '#f39c12' },
-  { nameKey: 'sadness', population: 20, color: '#2980b9' },
-  { nameKey: 'fear', population: 20, color: '#8e44ad' },
-  { nameKey: 'anger', population: 20, color: '#c0392b' },
-  { nameKey: 'surprise', population: 20, color: '#27ae60' },
-];
-
-const chartConfig = {
-  backgroundGradientFrom: '#2E7D32',
-  backgroundGradientTo: '#2E7D32',
-  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-  strokeWidth: 2,
-  useShadowColorFromDataset: false,
+const emotionColors = {
+  tr: {
+    sevinç: '#F7DC6F',
+    üzüntü: '#85C1E9',     // pastel mavi
+    korku: '#A569BD',      // pastel mor
+    öfke: '#EC7063',       // pastel kırmızı-turuncu
+    tiksinti: '#58D68D',   // pastel yeşil
+    şaşkınlık: '#F8C471',  // pastel turuncu
+  },
+  en: {
+    joy: '#F7DC6F',
+    sadness: '#85C1E9',
+    fear: '#A569BD',
+    anger: '#EC7063',
+    disgust: '#58D68D',
+    surprise: '#F8C471',
+  }
 };
 
-export default function SohbetAnalizScreen({ navigation }) {
+function createAIEvaluationText(emotions, language) {
+  const t = translations[language].aiEvaluationMessages;
+  const entries = Object.entries(emotions);
+  if (entries.length === 0) {
+    return t.notEnoughData;
+  }
+
+  let maxEmotion = entries[0][0];
+  let maxValue = entries[0][1];
+  for (const [emotion, value] of entries) {
+    if (value > maxValue) {
+      maxValue = value;
+      maxEmotion = emotion;
+    }
+  }
+
+  switch (maxEmotion) {
+    case 'sevinç':
+    case 'joy':
+      if (maxValue > 40) return t.joy;
+      break;
+    case 'üzüntü':
+    case 'sadness':
+      if (maxValue > 30) return t.sadness;
+      break;
+    case 'korku':
+    case 'fear':
+      if (maxValue > 30) return t.fear;
+      break;
+    case 'öfke':
+    case 'anger':
+      if (maxValue > 30) return t.anger;
+      break;
+    case 'tiksinti':
+    case 'disgust':
+      if (maxValue > 30) return t.disgust;
+      break;
+    case 'şaşkınlık':
+    case 'surprise':
+      if (maxValue > 30) return t.surprise;
+      break;
+    default:
+      return t.default;
+  }
+  return t.balanced;
+}
+
+export default function SohbetAnalizScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const paddingTop = Math.min(Math.max(insets.top, 16), 28) + 8;
-  const { language } = useLanguage();
-  const t = translations[language];
+
+  const messages = route.params?.messages || [];
+  const language = route.params?.language || 'tr';
+
+  const t = translations[language].chatAnalysisScreen;
+  const emotionNames = translations[language].emotions;
+  const common = translations[language].common;
+  const aiMessages = translations[language].aiEvaluationMessages;
+
+  const [loading, setLoading] = useState(false);
+  const [emotionsData, setEmotionsData] = useState([]);
+  const [aiEvaluationText, setAiEvaluationText] = useState(t.loading);
+
+  useEffect(() => {
+    if (messages.length === 0) {
+      setAiEvaluationText(t.noData);
+      setEmotionsData([]);
+      return;
+    }
+
+    setLoading(true);
+
+    fetch("http://192.168.0.12:5000/analyze-emotions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texts: messages, language }),
+    })
+      .then(res => res.json())
+      .then(json => {
+        setLoading(false);
+        if (json.error) {
+          setAiEvaluationText(
+            (language === 'tr' ? aiMessages.errorPrefix : aiMessages.errorPrefix) +
+            json.error
+          );
+          setEmotionsData([]);
+          return;
+        }
+
+        const emotions = json.emotions || {};
+        const colorsForLanguage = emotionColors[language] || emotionColors['en'];
+
+        // Sadece bu 6 duyguyu filtrele
+        const allowedEmotions = language === 'tr'
+          ? ['sevinç', 'üzüntü', 'korku', 'öfke', 'tiksinti', 'şaşkınlık']
+          : ['joy', 'sadness', 'fear', 'anger', 'disgust', 'surprise'];
+
+        const filteredEmotions = Object.entries(emotions)
+          .filter(([key]) => allowedEmotions.includes(key))
+          .reduce((obj, [key, val]) => {
+            obj[key] = val;
+            return obj;
+          }, {});
+
+        const data = Object.entries(filteredEmotions)
+          .map(([key, value]) => ({
+            name: emotionNames[key] || (key.charAt(0).toUpperCase() + key.slice(1)),
+            population: value,
+            color: colorsForLanguage[key] || '#999',
+            legendFontColor: '#444',
+            legendFontSize: Math.round(screenWidth * 0.035),
+          }))
+          .filter(item => item.population > 0);
+
+        setEmotionsData(data);
+        setAiEvaluationText(createAIEvaluationText(filteredEmotions, language));
+      })
+      .catch(() => {
+        setLoading(false);
+        setAiEvaluationText(
+          language === 'tr'
+            ? aiMessages.serverError
+            : aiMessages.serverError
+        );
+        setEmotionsData([]);
+      });
+  }, [messages, language]);
 
   const handleSaveAndFinish = () => {
-    Alert.alert(t.info, t.chatSavedEnded);
+    Alert.alert(common.info, t.chatSavedEnded);
     navigation.goBack();
   };
 
   const handleFinishOnly = () => {
-    Alert.alert(t.info, t.chatEnded, [
+    Alert.alert(common.info, t.chatEnded, [
       {
-        text: t.ok,
-        onPress: () => navigation.navigate('SohbetMain'),
+        text: common.ok,
+        onPress: () => navigation.navigate('SohbetMain', { resetChat: true }),
       },
     ]);
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+        <Text style={{ marginTop: 16, fontSize: 16, color: '#2E7D32' }}>{t.loading}</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={[styles.container, { paddingTop }]}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <View style={styles.backContent}>
-              <Ionicons name="arrow-back" size={22} color="#2E7D32" />
-              <Text style={styles.backButtonText}>{t.back}</Text>
-            </View>
-          </TouchableOpacity>
-
-          <Text style={styles.headerTitle}>{t.chatAnalysis}</Text>
+          <Text style={styles.headerTitle}>{t.headerTitle}</Text>
           <View style={styles.spacer} />
         </View>
 
         <View style={styles.body}>
           <View style={styles.aiContainer}>
             <Text style={styles.subtitle}>{t.aiEvaluation}</Text>
-            <Text style={styles.aiText}>{t.aiEvaluationText}</Text>
+            <Text style={styles.aiText}>{aiEvaluationText}</Text>
           </View>
 
-          <Text style={[styles.subtitle, styles.marginTopLarge]}>
-            {t.detectedEmotions}
-          </Text>
+          <Text style={[styles.subtitle, styles.marginTopLarge]}>{t.detectedEmotions}</Text>
 
-          <PieChart
-            data={EMOTIONS_DATA.map(({ nameKey, population, color }) => ({
-              name: t[nameKey],
-              population,
-              color,
-              legendFontColor: '#444',
-              legendFontSize: Math.round(screenWidth * 0.035),
-            }))}
-            width={screenWidth * 0.9}
-            height={screenWidth * 0.6}
-            chartConfig={chartConfig}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft={12}
-            absolute
-            hasLegend
-            style={styles.chart}
-          />
+          {emotionsData.length > 0 ? (
+            <>
+              <PieChart
+                data={emotionsData}
+                width={screenWidth * 0.9}
+                height={screenWidth * 0.6}
+                chartConfig={{
+                  backgroundGradientFrom: '#2E7D32',
+                  backgroundGradientTo: '#2E7D32',
+                  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  strokeWidth: 2,
+                  useShadowColorFromDataset: false,
+                }}
+                accessor="population"
+                backgroundColor="transparent"
+                paddingLeft={12}
+                absolute
+                hasLegend
+                style={styles.chart}
+              />
+              <Text style={styles.aiDisclaimer}>{aiMessages.disclaimer}</Text>
+            </>
+          ) : (
+            <Text style={styles.noDataText}>{t.chartNoData}</Text>
+          )}
 
-          <Text style={[styles.paragraph, styles.archivePrompt]}>
-            {t.archivePrompt}
-          </Text>
+          <Text style={[styles.paragraph, styles.archivePrompt]}>{t.archivePrompt}</Text>
 
           <View style={styles.buttonRow}>
             <TouchableOpacity
@@ -129,117 +255,101 @@ export default function SohbetAnalizScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
+  safeArea: { flex: 1, backgroundColor: '#fff' },
   container: {
     paddingHorizontal: 16,
-    paddingBottom: 20,
-    backgroundColor: '#fff',
-    minHeight: '100%',
+    paddingBottom: 32,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  backButton: {
-    width: 70,
-  },
-  backContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    fontSize: Math.round(screenWidth * 0.04),
-    color: '#2E7D32',
-    marginLeft: 6,
-    fontWeight: '600',
+    marginBottom: 12,
   },
   headerTitle: {
-    fontSize: Math.round(screenWidth * 0.06),
+    flex: 1,
+    fontSize: 22,
     fontWeight: '700',
+    textAlign: 'center',
     color: '#2E7D32',
   },
   spacer: {
-    width: 70,
+    width: 48,
   },
   body: {
-    alignItems: 'center',
+    marginTop: 4,
   },
   aiContainer: {
-    backgroundColor: 'rgba(46, 125, 50, 0.15)',
+    backgroundColor: '#E8F5E9',
+    textAlign: 'center',
+    borderRadius: 10,
     padding: 14,
-    borderRadius: 14,
-    marginBottom: 16,
-    marginTop: 20,
-    width: '100%',
   },
   subtitle: {
-    fontSize: Math.round(screenWidth * 0.045),
-    fontWeight: '600',
-    color: '#444',
-    textAlign: 'center',
-    width: '100%',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2E7D32',
   },
   aiText: {
-    fontSize: Math.round(screenWidth * 0.04),
-    color: '#2E7D32',
-    marginTop: 6,
-    lineHeight: Math.round(screenWidth * 0.06),
+    marginTop: 10,
+    fontSize: 16,
+    color: '#1B5E20',
+  },
+  aiDisclaimer: {
+    marginTop: 12,
+    fontSize: 12,
+    color: '#555',
+    fontStyle: 'italic',
     textAlign: 'center',
   },
   marginTopLarge: {
-    marginTop: 18,
+    marginTop: 28,
   },
   chart: {
-    marginTop: 16,
-    borderRadius: 14,
+    marginTop: 18,
+  },
+  noDataText: {
+    marginTop: 18,
+    textAlign: 'center',
+    color: '#666',
+    fontStyle: 'italic',
   },
   paragraph: {
-    fontSize: Math.round(screenWidth * 0.04),
-    marginTop: 12,
-    color: '#555',
-    lineHeight: Math.round(screenWidth * 0.06),
+    fontSize: 14,
+    color: '#444',
+    marginTop: 22,
     textAlign: 'center',
-    width: '100%',
   },
   archivePrompt: {
-    marginTop: 18,
-    fontWeight: '700',
-    color: '#2E7D32',
+    fontWeight: '500',
   },
   buttonRow: {
-    marginTop: 22,
-    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 24,
   },
   button: {
+    flex: 1,
+    marginHorizontal: 8,
     paddingVertical: 14,
-    borderRadius: 26,
+    borderRadius: 24,
     alignItems: 'center',
-    marginVertical: 8,
-    shadowColor: '#2E7D32',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 5,
   },
   saveButton: {
-    backgroundColor: '#388E3C',
+    backgroundColor: '#2E7D32',
   },
   saveButtonText: {
-    color: '#e8f5e9',
+    color: '#fff',
     fontWeight: '700',
-    fontSize: Math.round(screenWidth * 0.045),
+    fontSize: 16,
   },
   endButton: {
-    backgroundColor: '#A5D6A7',
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#d32f2f',
   },
   endButtonText: {
-    color: '#2E7D32',
+    color: '#d32f2f',
     fontWeight: '700',
-    fontSize: Math.round(screenWidth * 0.045),
+    fontSize: 16,
   },
 });
