@@ -7,10 +7,11 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PieChart } from 'react-native-chart-kit';
+import LottieView from 'lottie-react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { translations } from '../../translations';
 
@@ -19,11 +20,11 @@ const { width: screenWidth } = Dimensions.get('window');
 const emotionColors = {
   tr: {
     sevinç: '#F7DC6F',
-    üzüntü: '#85C1E9',     // pastel mavi
-    korku: '#A569BD',      // pastel mor
-    öfke: '#EC7063',       // pastel kırmızı-turuncu
-    tiksinti: '#58D68D',   // pastel yeşil
-    şaşkınlık: '#F8C471',  // pastel turuncu
+    üzüntü: '#85C1E9',
+    korku: '#A569BD',
+    öfke: '#EC7063',
+    tiksinti: '#58D68D',
+    şaşkınlık: '#F8C471',
   },
   en: {
     joy: '#F7DC6F',
@@ -32,15 +33,13 @@ const emotionColors = {
     anger: '#EC7063',
     disgust: '#58D68D',
     surprise: '#F8C471',
-  }
+  },
 };
 
 function createAIEvaluationText(emotions, language) {
   const t = translations[language].aiEvaluationMessages;
   const entries = Object.entries(emotions);
-  if (entries.length === 0) {
-    return t.notEnoughData;
-  }
+  if (entries.length === 0) return t.notEnoughData;
 
   let maxEmotion = entries[0][0];
   let maxValue = entries[0][1];
@@ -107,7 +106,7 @@ export default function SohbetAnalizScreen({ navigation, route }) {
 
     setLoading(true);
 
-    fetch("http://192.168.0.12:5000/analyze-emotions", {
+    fetch("http://192.168.3.216:5000/analyze-emotions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ texts: messages, language }),
@@ -116,10 +115,7 @@ export default function SohbetAnalizScreen({ navigation, route }) {
       .then(json => {
         setLoading(false);
         if (json.error) {
-          setAiEvaluationText(
-            (language === 'tr' ? aiMessages.errorPrefix : aiMessages.errorPrefix) +
-            json.error
-          );
+          setAiEvaluationText(aiMessages.errorPrefix + json.error);
           setEmotionsData([]);
           return;
         }
@@ -127,7 +123,6 @@ export default function SohbetAnalizScreen({ navigation, route }) {
         const emotions = json.emotions || {};
         const colorsForLanguage = emotionColors[language] || emotionColors['en'];
 
-        // Sadece bu 6 duyguyu filtrele
         const allowedEmotions = language === 'tr'
           ? ['sevinç', 'üzüntü', 'korku', 'öfke', 'tiksinti', 'şaşkınlık']
           : ['joy', 'sadness', 'fear', 'anger', 'disgust', 'surprise'];
@@ -141,7 +136,7 @@ export default function SohbetAnalizScreen({ navigation, route }) {
 
         const data = Object.entries(filteredEmotions)
           .map(([key, value]) => ({
-            name: emotionNames[key] || (key.charAt(0).toUpperCase() + key.slice(1)),
+            name: emotionNames[key] || key,
             population: value,
             color: colorsForLanguage[key] || '#999',
             legendFontColor: '#444',
@@ -154,11 +149,7 @@ export default function SohbetAnalizScreen({ navigation, route }) {
       })
       .catch(() => {
         setLoading(false);
-        setAiEvaluationText(
-          language === 'tr'
-            ? aiMessages.serverError
-            : aiMessages.serverError
-        );
+        setAiEvaluationText(aiMessages.serverError);
         setEmotionsData([]);
       });
   }, [messages, language]);
@@ -176,22 +167,33 @@ export default function SohbetAnalizScreen({ navigation, route }) {
       },
     ]);
   };
+if (loading) {
+  return (
+    <SafeAreaView style={styles.loadingContainer}>
+      <LottieView
+        source={require('../../assets/analiz.json')}
+        autoPlay
+        loop
+        style={styles.lottieBigger}
+      />
+      <View style={styles.loadingTextContainer}>
+        <MaterialCommunityIcons name="brain" size={30} color="#2E7D32" style={{ marginRight: 10 }} />
+        <Text style={styles.loadingTextBig}>{t.loading}</Text>
+      </View>
+    </SafeAreaView>
+  );
+}
 
-  if (loading) {
-    return (
-      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#2E7D32" />
-        <Text style={{ marginTop: 16, fontSize: 16, color: '#2E7D32' }}>{t.loading}</Text>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={[styles.container, { paddingTop }]}>
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingTop, flexGrow: 1 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{t.headerTitle}</Text>
-          <View style={styles.spacer} />
         </View>
 
         <View style={styles.body}>
@@ -259,28 +261,23 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingBottom: 32,
+    flexGrow: 1,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
   headerTitle: {
-    flex: 1,
     fontSize: 22,
     fontWeight: '700',
     textAlign: 'center',
     color: '#2E7D32',
-  },
-  spacer: {
-    width: 48,
   },
   body: {
     marginTop: 4,
   },
   aiContainer: {
     backgroundColor: '#E8F5E9',
-    textAlign: 'center',
     borderRadius: 10,
     padding: 14,
   },
@@ -305,7 +302,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
   },
   chart: {
-    marginTop: 18,
+    marginTop: 12,
   },
   noDataText: {
     marginTop: 18,
@@ -316,7 +313,7 @@ const styles = StyleSheet.create({
   paragraph: {
     fontSize: 14,
     color: '#444',
-    marginTop: 22,
+    marginTop: 12,
     textAlign: 'center',
   },
   archivePrompt: {
@@ -325,7 +322,7 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 24,
+    marginTop: 12,
   },
   button: {
     flex: 1,
@@ -352,4 +349,37 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+  loadingContainer: {
+  flex: 1,
+  justifyContent: 'flex-start',  // Yukarı hizalama
+  alignItems: 'center',
+  backgroundColor: '#ffffff',
+  paddingHorizontal: 32,
+  paddingTop: 150,  // Animasyonun ekranın üstüne yaklaşmasını sağlar
+},
+lottieBigger: {
+  width: screenWidth * 0.85,
+  height: screenWidth * 0.85,
+  marginBottom: 20,
+},
+loadingTextContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#E8F5E9',
+  paddingHorizontal: 18,
+  paddingVertical: 12,
+  borderRadius: 14,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 5,
+},
+loadingTextBig: {
+  fontSize: 20,
+  fontWeight: '700',
+  color: '#2E7D32',
+},
+
+
 });

@@ -9,42 +9,40 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useLanguage } from '../../LanguageContext'; // Dil context'ini kendi yapına göre ayarla
+import { useLanguage } from '../../LanguageContext';
 import { translations } from '../../translations';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function PrivacyPolicyScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const paddingTop = Math.min(Math.max(insets.top, 16), 28) + 8;
-
   const { language } = useLanguage();
+
   const t = translations[language].sections;
   const backText = translations[language].back;
   const title = translations[language].privacyTitle;
 
+  const bottomPadding = Math.max(insets.bottom, 20) + 12;
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={[styles.container, { paddingTop }]} showsVerticalScrollIndicator={false}>
-        {/* Başlık ve Geri */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <View style={styles.backContent}>
-              <Ionicons name="arrow-back" size={22} color="#2E7D32" />
-              <Text style={styles.backButtonText}>{backText}</Text>
-            </View>
-          </TouchableOpacity>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+          <View style={styles.backContent}>
+            <Ionicons name="arrow-back" size={22} color="#2E7D32" />
+            <Text style={styles.backButtonText}>{backText}</Text>
+          </View>
+        </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
+        <View style={styles.spacer} />
+      </View>
 
-          <View style={styles.spacer} />
-        </View>
-
-        {/* Gizlilik Politikası Metni */}
+      <ScrollView
+        style={styles.scrollArea}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>{t.personalData}</Text>
           <Text style={styles.text}>{t.personalDataText}</Text>
@@ -75,29 +73,19 @@ export default function PrivacyPolicyScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  container: {
-    paddingHorizontal: 16,
-    paddingBottom: 30,
-    backgroundColor: '#fff',
-    minHeight: '100%',
-  },
+  safeArea: { flex: 1, backgroundColor: '#fff' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomColor: '#ddd',
+    borderBottomWidth: 1,
+    backgroundColor: '#fff',
   },
-  backButton: {
-    width: 70,
-  },
-  backContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  backButton: { width: 70 },
+  backContent: { flexDirection: 'row', alignItems: 'center' },
   backButtonText: {
     fontSize: Math.round(screenWidth * 0.04),
     color: '#2E7D32',
@@ -109,8 +97,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2E7D32',
   },
-  spacer: {
-    width: 70,
+  spacer: { width: 70 },
+  scrollArea: { flex: 1, backgroundColor: '#fff' },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 32,
   },
   card: {
     backgroundColor: '#fff',

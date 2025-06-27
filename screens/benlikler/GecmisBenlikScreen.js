@@ -1,65 +1,337 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Button, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import LottieView from 'lottie-react-native';
+import { useNavigation } from '@react-navigation/native';
 
-const OPENAI_API_KEY = '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';
+const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
 
-export default function OpenAITestScreen() {
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const MessageItem = React.memo(({ item }) => {
+  const isUser = item.sender === 'user';
+  return (
+    <View
+      style={[
+        styles.messageContainer,
+        isUser ? styles.userMessage : styles.botMessage,
+      ]}
+    >
+      {item.isLoading && (
+        <ActivityIndicator size="small" color="#2E7D32" style={{ marginRight: 8 }} />
+      )}
+      <Text style={[styles.messageText, isUser ? styles.userText : styles.botText]}>
+        {item.text}
+      </Text>
+    </View>
+  );
+});
 
-  const testOpenAI = async () => {
-    setLoading(true);
-    setError(null);
-    setResult(null);
+const GecmisBenlik = () => {
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const flatListRef = useRef();
 
+  const [messages, setMessages] = useState([]);
+  const [inputText, setInputText] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [showAnimation, setShowAnimation] = useState(false);
+  const [isWaiting, setIsWaiting] = useState(false);
+  const [showContinue, setShowContinue] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchNextQuestion(0);
+  }, []);
+
+  const fetchNextQuestion = async (index) => {
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini', 
-          messages: [
-            { role: 'system', content: 'You are a helpful assistant.' },
-            { role: 'user', content: 'Merhaba, bu bir test mesajıdır.' },
-          ],
-          max_tokens: 50,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setResult(data.choices[0].message.content);
+      const res = await fetch(`http://192.168.0.12:5000/get-next-question?index=${index}`);
+      const data = await res.json();
+      if (data.question) {
+        setMessages((prev) => [
+          ...prev,
+          { id: `q-${Date.now()}`, text: data.question, sender: 'bot' },
+        ]);
       } else {
-        setError(data.error.message || 'Bilinmeyen hata');
+        showEndAnimation();
       }
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { id: `err-${Date.now()}`, text: 'Soru alınamadı.', sender: 'bot' },
+      ]);
     }
   };
 
+  const sendMessage = async () => {
+    const userInput = inputText.trim();
+    if (!userInput || isWaiting) return;
+
+    const userMsg = { id: Date.now().toString(), text: userInput, sender: 'user' };
+    setMessages((prev) => [...prev, userMsg]);
+    setInputText('');
+    setIsWaiting(true);
+
+    const loadingId = `loading-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      { id: loadingId, text: 'Yazıyor...', sender: 'bot', isLoading: true },
+    ]);
+
+    try {
+      const res = await fetch('http://192.168.0.12:5000/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+  text: userInput,
+  question: messages[messages.length - 2]?.text || '',  // son soru mesajı
+  language: 'tr',
+}),
+
+      });
+
+      const data = await res.json();
+
+      setMessages((prev) => [
+        ...prev.filter((msg) => !msg.isLoading),
+        { id: `ai-${Date.now()}`, text: data.response, sender: 'bot' },
+      ]);
+
+      const nextIndex = questionIndex + 1;
+      setQuestionIndex(nextIndex);
+      if (nextIndex > 1) setShowContinue(true);
+      fetchNextQuestion(nextIndex);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev.filter((msg) => !msg.isLoading),
+        { id: `err-${Date.now()}`, text: 'Cevap alınamadı.', sender: 'bot' },
+      ]);
+    } finally {
+      setIsWaiting(false);
+    }
+  };
+
+  const showEndAnimation = () => {
+    setShowAnimation(true);
+    setTimeout(() => {
+      navigation.navigate('SimdikiBenlik');
+    }, 3000);
+  };
+
   return (
-    <View style={styles.container}>
-      <Button title="OpenAI API Test Et" onPress={testOpenAI} />
-      {loading && <ActivityIndicator size="large" color="#5f2c82" style={{ marginTop: 20 }} />}
-      {result && (
-        <Text style={styles.resultText}>API Cevabı: {result}</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Text style={styles.headerTitle}>Geçmiş Benlik</Text>
+      </View>
+
+      {showAnimation ? (
+        <View style={styles.animationContainer}>
+          <LottieView
+            source={require('../../assets/message_send.json')}
+            autoPlay
+            loop={false}
+            style={{ width: 200, height: 200 }}
+          />
+          <Text style={styles.animationText}>
+            Mesajlarınız gönderiliyor... Şimdiki benlik analiziniz için devam ediliyor.
+          </Text>
+        </View>
+      ) : (
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={TAB_BAR_HEIGHT}
+        >
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <MessageItem item={item} />}
+            contentContainerStyle={{ padding: 16, paddingBottom: 200 }}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={8}
+            maxToRenderPerBatch={5}
+          />
+
+          <View
+            style={[
+              styles.footer,
+              { bottom: keyboardHeight > 0 ? keyboardHeight : TAB_BAR_HEIGHT },
+            ]}
+          >
+            {showContinue && (
+              <TouchableOpacity style={styles.continueButton} onPress={showEndAnimation}>
+                <Text style={styles.continueButtonText}>Devam Et</Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Cevabınızı yazın..."
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+              />
+              <TouchableOpacity
+                style={[styles.sendButton, !inputText.trim() && { opacity: 0.5 }]}
+                onPress={sendMessage}
+                disabled={!inputText.trim()}
+              >
+                <Ionicons name="send" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       )}
-      {error && (
-        <Text style={styles.errorText}>Hata: {error}</Text>
-      )}
-    </View>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  resultText: { marginTop: 20, fontSize: 16, color: 'green' },
-  errorText: { marginTop: 20, fontSize: 16, color: 'red' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F9F9F9',
+  },
+  header: {
+    alignItems: 'center',
+    paddingBottom: 12,
+    borderBottomColor: '#E0E0E0',
+    borderBottomWidth: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1B5E20',
+  },
+  container: {
+    flex: 1,
+  },
+  messageContainer: {
+    maxWidth: '80%',
+    marginVertical: 6,
+    padding: 14,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  userMessage: {
+    backgroundColor: '#43A047',
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 4,
+  },
+  botMessage: {
+    backgroundColor: '#F1F8E9',
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 4,
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  userText: {
+    color: '#FFFFFF',
+  },
+  botText: {
+    color: '#333333',
+  },
+  footer: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+    borderTopColor: '#E0E0E0',
+    borderTopWidth: 1,
+    width: '100%',
+    position: 'absolute',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 30,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  input: {
+    flex: 1,
+    maxHeight: 100,
+    fontSize: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    color: '#333333',
+  },
+  sendButton: {
+    backgroundColor: '#2E7D32',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2.62,
+    elevation: 4,
+  },
+  continueButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#2E7D32',
+    marginBottom: 8,
+  },
+  continueButtonText: {
+    color: '#2E7D32',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  animationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  animationText: {
+    marginTop: 20,
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#333333',
+  },
 });
+
+
+export default GecmisBenlik;

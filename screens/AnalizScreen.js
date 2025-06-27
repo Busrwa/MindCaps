@@ -8,8 +8,8 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
-import { useLanguage } from '../LanguageContext'; // Dil context'i
-import { translations } from '../translations';   // Dil verileri
+import { useLanguage } from '../LanguageContext';
+import { translations } from '../translations';
 
 const { width } = Dimensions.get('window');
 
@@ -64,7 +64,10 @@ export default function AnalizScreen() {
         <Text style={styles.headerSubtitle}>{t.analysisSubtitle}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1, paddingBottom: 60 }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Duygu Haritası */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.emotionMap}</Text>
@@ -72,19 +75,13 @@ export default function AnalizScreen() {
           <View style={styles.toggleRow}>
             <Text
               onPress={() => setEmotionView('daily')}
-              style={[
-                styles.toggleText,
-                emotionView === 'daily' && styles.toggleTextActive,
-              ]}
+              style={[styles.toggleText, emotionView === 'daily' && styles.toggleTextActive]}
             >
               {t.daily}
             </Text>
             <Text
               onPress={() => setEmotionView('weekly')}
-              style={[
-                styles.toggleText,
-                emotionView === 'weekly' && styles.toggleTextActive,
-              ]}
+              style={[styles.toggleText, emotionView === 'weekly' && styles.toggleTextActive]}
             >
               {t.weekly}
             </Text>
@@ -120,19 +117,13 @@ export default function AnalizScreen() {
           <View style={styles.toggleRow}>
             <Text
               onPress={() => setThematicView('weekly')}
-              style={[
-                styles.toggleText,
-                thematicView === 'weekly' && styles.toggleTextActive,
-              ]}
+              style={[styles.toggleText, thematicView === 'weekly' && styles.toggleTextActive]}
             >
               {t.weekly}
             </Text>
             <Text
               onPress={() => setThematicView('monthly')}
-              style={[
-                styles.toggleText,
-                thematicView === 'monthly' && styles.toggleTextActive,
-              ]}
+              style={[styles.toggleText, thematicView === 'monthly' && styles.toggleTextActive]}
             >
               {t.monthly}
             </Text>
@@ -238,7 +229,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   scrollContent: {
-    flexGrow: 1,
     paddingVertical: 24,
     paddingHorizontal: 16,
   },

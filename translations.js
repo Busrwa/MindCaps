@@ -201,7 +201,7 @@ export const translations = {
       headerTitle: 'Sohbet Analizi',
       aiEvaluation: 'Yapay Zeka Değerlendirmesi',
       detectedEmotions: 'Tespit Edilen Duygular',
-      loading: 'Yükleniyor...',
+      loading: 'Analiz ediliyor...',
       noData: 'Veri yok.',
       chartNoData: 'Gösterilecek duygu verisi yok.',
       archivePrompt: 'Sohbet kaydedildiğinde arşivlenecektir.',

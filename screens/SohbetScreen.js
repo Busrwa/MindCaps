@@ -2,30 +2,50 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  Alert,
-  ActivityIndicator,
   Keyboard,
+  ActivityIndicator,
+  StyleSheet,
+  Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../LanguageContext';
 import { translations } from '../translations';
 
-const TAB_BAR_HEIGHT_IOS = 80;
-const TAB_BAR_HEIGHT_ANDROID = 60;
+const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
+
+const MessageItem = React.memo(({ item }) => {
+  const isUser = item.sender === 'user';
+  return (
+    <View
+      style={[
+        styles.messageContainer,
+        isUser ? styles.userMessage : styles.botMessage,
+      ]}
+    >
+      {item.isLoading && (
+        <ActivityIndicator size="small" color="#2E7D32" style={{ marginRight: 8 }} />
+      )}
+      <Text style={[styles.messageText, isUser ? styles.userText : styles.botText]}>
+        {item.text}
+      </Text>
+    </View>
+  );
+});
 
 export default function SohbetScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
+  const paddingTop = insets.top + 8;
+
   const { language } = useLanguage();
   const t = translations[language];
 
   const flatListRef = useRef();
-
   const [messages, setMessages] = useState([{ id: '1', text: t.initialMessage, sender: 'bot' }]);
   const [inputText, setInputText] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -45,9 +65,7 @@ export default function SohbetScreen({ navigation, route }) {
     const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardHeight(e.endCoordinates.height);
     });
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardHeight(0);
-    });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
     return () => {
       showSub.remove();
       hideSub.remove();
@@ -85,37 +103,16 @@ export default function SohbetScreen({ navigation, route }) {
       id: 'loading',
       text: 'Yazıyor...',
       sender: 'bot',
+      isLoading: true,
     };
     setMessages((prev) => [...prev, loadingMsg]);
 
     const botText = await askAI(userMsg.text);
 
-    setMessages((prev) => {
-      const filtered = prev.filter((m) => m.id !== 'loading');
-      return [...filtered, { id: (Date.now() + 1).toString(), text: botText, sender: 'bot' }];
-    });
-  };
-
-  useEffect(() => {
-    flatListRef.current?.scrollToEnd({ animated: true });
-  }, [messages]);
-
-  const renderItem = ({ item }) => {
-    const isUser = item.sender === 'user';
-    const isLoading = item.id === 'loading';
-
-    return (
-      <View
-        style={[
-          styles.messageContainer,
-          isUser ? styles.userMessage : styles.botMessage,
-          isLoading && { flexDirection: 'row', alignItems: 'center' },
-        ]}
-      >
-        {isLoading && <ActivityIndicator size="small" color="#2E7D32" style={{ marginRight: 8 }} />}
-        <Text style={[styles.messageText, isUser ? styles.userText : styles.botText]}>{item.text}</Text>
-      </View>
-    );
+    setMessages((prev) => [
+      ...prev.filter((m) => m.id !== 'loading'),
+      { id: (Date.now() + 1).toString(), text: botText, sender: 'bot' },
+    ]);
   };
 
   const endChat = () => {
@@ -125,42 +122,33 @@ export default function SohbetScreen({ navigation, route }) {
     }
 
     const formattedMessages = messages.filter((m) => m.sender === 'user').map((msg) => msg.text);
-
     navigation.navigate('SohbetAnaliz', { messages: formattedMessages, language });
-
     setMessages([{ id: '1', text: t.initialMessage, sender: 'bot' }]);
     setInputText('');
   };
 
-  const tabBarHeight = Platform.OS === 'ios' ? TAB_BAR_HEIGHT_IOS : TAB_BAR_HEIGHT_ANDROID;
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop }]}> 
         <Text style={styles.headerTitle}>{t.chatTitle}</Text>
       </View>
 
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={tabBarHeight}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={TAB_BAR_HEIGHT}
       >
         <FlatList
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingTop: 16,
-            paddingBottom: tabBarHeight,
-          }}
+          renderItem={({ item }) => <MessageItem item={item} />}
+          contentContainerStyle={{ padding: 16, paddingBottom: 200 }}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           showsVerticalScrollIndicator={false}
         />
 
-        {/* Yazma alanı */}
-        <View style={[styles.inputWrapper, { bottom: 40 }]}>
+        <View style={[styles.footer, { bottom: keyboardHeight > 0 ? keyboardHeight : TAB_BAR_HEIGHT }]}>
           <TouchableOpacity style={styles.endChatButton} onPress={endChat}>
             <Text style={styles.endChatButtonText}>{t.endChat}</Text>
           </TouchableOpacity>
@@ -188,38 +176,45 @@ export default function SohbetScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F8F8F8' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F9F9F9',
+  },
   header: {
     alignItems: 'center',
     paddingBottom: 12,
-    paddingTop: 16,
-    borderBottomColor: '#ddd',
+    borderBottomColor: '#E0E0E0',
     borderBottomWidth: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#2E7D32',
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1B5E20',
   },
   container: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
   },
   messageContainer: {
-    maxWidth: '75%',
+    maxWidth: '80%',
     marginVertical: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 18,
+    padding: 14,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   userMessage: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#43A047',
     alignSelf: 'flex-end',
     borderBottomRightRadius: 4,
   },
   botMessage: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#F1F8E9',
     alignSelf: 'flex-start',
     borderBottomLeftRadius: 4,
   },
@@ -227,59 +222,65 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
-  userText: { color: '#fff' },
-  botText: { color: '#222' },
-
-  inputWrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
+  userText: {
+    color: '#FFFFFF',
+  },
+  botText: {
+    color: '#333333',
+  },
+  footer: {
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingTop: 8,
-    borderTopColor: '#ddd',
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
+    borderTopColor: '#E0E0E0',
     borderTopWidth: 1,
+    width: '100%',
+    position: 'absolute',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 30,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  input: {
+    flex: 1,
+    maxHeight: 100,
+    fontSize: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    color: '#333333',
+  },
+  sendButton: {
+    backgroundColor: '#2E7D32',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2.62,
+    elevation: 4,
   },
   endChatButton: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#d32f2f',
+    borderColor: '#D32F2F',
     marginBottom: 8,
   },
   endChatButtonText: {
-    color: '#d32f2f',
+    color: '#D32F2F',
     fontWeight: '700',
     fontSize: 16,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    paddingVertical: 6,
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    alignItems: 'flex-end',
-  },
-  input: {
-    flex: 1,
-    maxHeight: 120,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: '#fafafa',
-    borderTopLeftRadius: 24,
-    borderBottomLeftRadius: 24,
-  },
-  sendButton: {
-    backgroundColor: '#2E7D32',
-    padding: 12,
-    borderTopRightRadius: 24,
-    borderBottomRightRadius: 24,
-    marginLeft: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

@@ -39,7 +39,10 @@ export default function ProfilScreen({ navigation }) {
         <Text style={styles.headerTitle}>{t.profile}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.iconWrapper}>
           <Image source={require('../assets/icon.png')} style={styles.profileIcon} />
         </View>
@@ -167,6 +170,7 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     marginTop: 30,
+    marginBottom: 40, // Eklendi: Alt boşluk
     borderWidth: 1.5,
     borderColor: '#D32F2F',
     paddingVertical: 14,

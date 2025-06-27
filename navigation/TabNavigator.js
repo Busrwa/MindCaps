@@ -1,4 +1,3 @@
-// TabNavigator.js
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BenliklerStack from './BenliklerStack';
@@ -9,18 +8,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../LanguageContext';
 import { translations } from '../translations';
 import { Platform, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const Tab = createBottomTabNavigator();
-
-const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
 
 export default function TabNavigator() {
   const { language } = useLanguage();
   const t = translations[language].tabs;
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
-      sceneContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT }}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           let iconName;
@@ -48,8 +46,8 @@ export default function TabNavigator() {
           borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0,
-          height: TAB_BAR_HEIGHT,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
           position: 'absolute',
           left: 0,
           right: 0,

@@ -16,32 +16,35 @@ const { width: screenWidth } = Dimensions.get('window');
 
 export default function AboutScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const paddingTop = Math.min(Math.max(insets.top, 16), 28) + 8;
   const { language } = useLanguage();
   const t = translations[language];
+  const bottomPadding = Math.max(insets.bottom, 20) + 12; 
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={[styles.container, { paddingTop }]} showsVerticalScrollIndicator={false}>
+      {/* Sabit Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <View style={styles.backContent}>
+            <Ionicons name="arrow-back" size={22} color="#2E7D32" />
+            <Text style={styles.backButtonText}>{t.back}</Text>
+          </View>
+        </TouchableOpacity>
 
-        {/* Başlık ve Geri */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <View style={styles.backContent}>
-              <Ionicons name="arrow-back" size={22} color="#2E7D32" />
-              <Text style={styles.backButtonText}>{t.back}</Text>
-            </View>
-          </TouchableOpacity>
+        <Text style={styles.headerTitle}>{t.about}</Text>
+        <View style={styles.spacer} />
+      </View>
 
-          <Text style={styles.headerTitle}>{t.about}</Text>
-          <View style={styles.spacer} />
-        </View>
-
-        {/* İçerik Kartı */}
+      {/* Scrollable Content */}
+      <ScrollView
+        style={styles.scrollArea}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.card}>
           <Text style={styles.title}>{t.whatIsMindcapsTitle}</Text>
           <Text style={styles.text}>{t.whatIsMindcapsDesc}</Text>
@@ -55,7 +58,6 @@ export default function AboutScreen({ navigation }) {
           <Text style={styles.subtitle}>{t.safetyEthicsTitle}</Text>
           <Text style={styles.text}>{t.safetyEthicsDesc}</Text>
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -66,17 +68,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  container: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-    backgroundColor: '#fff',
-    minHeight: '100%',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomColor: '#ddd',
+    borderBottomWidth: 1,
+    backgroundColor: '#fff',
   },
   backButton: {
     width: 70,
@@ -98,6 +98,15 @@ const styles = StyleSheet.create({
   },
   spacer: {
     width: 70,
+  },
+  scrollArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+    paddingTop: 20,
   },
   card: {
     backgroundColor: '#fff',
