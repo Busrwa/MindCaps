@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,70 @@ import {
   Image,
   ImageBackground,
   Dimensions,
-  KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
+  Keyboard,
+  Animated,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+
+import TabNavigator from '../../navigation/TabNavigator';
+
+// Firebase importları
+import { auth } from '../../services/firebase'; // Kendi firebase servis dosyan
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const { width } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const passwordRef = useRef();
+
+  const cardPosition = useState(new Animated.Value(0))[0];
+
+  useEffect(() => {
+    const keyboardShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
+      const keyboardHeight = e.endCoordinates.height;
+      const moveUpValue = keyboardHeight * 0.7;
+
+      Animated.timing(cardPosition, {
+        toValue: -moveUpValue,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    const keyboardHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      Animated.timing(cardPosition, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    return () => {
+      keyboardShowListener.remove();
+      keyboardHideListener.remove();
+    };
+  }, [cardPosition]);
+
+  const handleLogin = () => {
+    if (!email.trim() || !password) {
+      Alert.alert('Hata', 'Lütfen e-posta ve şifre alanlarını doldurun.');
+      return;
+    }
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        Alert.alert('Başarılı', 'Giriş başarılı!');
+        navigation.replace('TabNavigator'); // İstersen ana sayfaya yönlendir
+      })
+      .catch((error) => {
+        Alert.alert('Giriş Hatası', error.message);
+      });
+  };
 
   return (
     <ImageBackground
@@ -25,57 +79,68 @@ const LoginScreen = ({ navigation }) => {
       style={styles.background}
       resizeMode="cover"
     >
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        {/* Geri Tuşu */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.navigate('Welcome')}
-        >
-          <View style={styles.backContent}>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.overlay}>
+          <TouchableOpacity
+            style={[styles.backButton, { top: Platform.OS === 'ios' ? 30 : 60 }]}
+            onPress={() => navigation.navigate('Welcome')}
+            activeOpacity={0.7}
+          >
             <Ionicons name="arrow-back" size={22} color="#2E7D32" />
-            <Text style={styles.backButtonText}>Geri</Text>
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.container}>
-          <Image source={require('../../assets/icon.png')} style={styles.logo} />
-
-          <Text style={styles.title}>Giriş Yap</Text>
-          <Text style={styles.subtitle}>Kendinizle yeniden tanışmak için giriş yapın!</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="E-posta"
-            placeholderTextColor="#666"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Şifre"
-            placeholderTextColor="#666"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>Giriş Yap</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.registerText}>
-              Hesabın yok mu? <Text style={styles.registerLink}>Kayıt ol</Text>
+          <Animated.View
+            style={[styles.card, { transform: [{ translateY: cardPosition }] }]}
+          >
+            <Image
+              source={require('../../assets/mindcaps.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+
+            <Text style={styles.title}>Giriş Yap</Text>
+            <Text style={styles.subtitle}>
+              Kendinle yeniden tanışmak için giriş yap.
             </Text>
-          </TouchableOpacity>
+
+            <TextInput
+              style={styles.input}
+              placeholder="E-posta"
+              placeholderTextColor="#888"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Şifre"
+              placeholderTextColor="#888"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              ref={passwordRef}
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
+            />
+
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+              <Text style={styles.loginButtonText}>Giriş Yap</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={styles.registerText}>
+                Hesabın yok mu?{' '}
+                <Text style={styles.registerLink}>Kayıt Ol</Text>
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
-      </KeyboardAvoidingView>
+      </SafeAreaView>
     </ImageBackground>
   );
 };
@@ -88,85 +153,98 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  safeArea: {
+    flex: 1,
+  },
   overlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
   },
   backButton: {
     position: 'absolute',
-    top: 50,
-    left: 24,
-    zIndex: 10,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 50,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  backContent: {
-    flexDirection: 'row',
+    left: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+    zIndex: 10,
   },
-  backButtonText: {
-    fontSize: 16,
-    color: '#2E7D32',
-    marginLeft: 6,
-    fontWeight: '600',
-  },
-  container: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 32,
-    paddingVertical: 32,
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 24,
+    paddingVertical: 20,
     paddingHorizontal: 24,
     width: width * 0.9,
     alignItems: 'center',
+    borderWidth: 0.5,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 8,
   },
   logo: {
-    width: 180,
-    height: 180,
-    marginBottom: 20,
+    width: 330,
+    height: 150,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 25,
+    fontWeight: '700',
     color: '#2E7D32',
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 24,
+    fontSize: 15,
+    color: '#444',
     textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 16,
   },
   input: {
     width: '100%',
     height: 48,
     borderColor: '#A5D6A7',
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    marginBottom: 16,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
     backgroundColor: '#fff',
     color: '#333',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  button: {
+  loginButton: {
     backgroundColor: '#4CAF50',
     paddingVertical: 14,
-    borderRadius: 10,
-    width: '100%',
+    borderRadius: 12,
+    width: '85%',
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 16,
-    shadowColor: '#388E3C',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    marginTop: 6,
+    marginBottom: 12,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 5,
   },
-  buttonText: {
-    color: '#e8f5e9',
-    fontSize: 16,
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 17,
     fontWeight: '600',
   },
   registerText: {

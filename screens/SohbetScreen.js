@@ -16,6 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../LanguageContext';
 import { translations } from '../translations';
+import { askAI } from '../services/api'; // API fonksiyonunu import ettik
 
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
 
@@ -72,21 +73,6 @@ export default function SohbetScreen({ navigation, route }) {
     };
   }, []);
 
-  const askAI = async (prompt) => {
-    try {
-      const response = await fetch('http://192.168.0.12:5000/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: prompt, language }),
-      });
-      const data = await response.json();
-      return data.response;
-    } catch (error) {
-      console.error('AI error:', error);
-      return t.aiError;
-    }
-  };
-
   const sendMessage = async () => {
     if (!inputText.trim()) return;
 
@@ -101,18 +87,24 @@ export default function SohbetScreen({ navigation, route }) {
 
     const loadingMsg = {
       id: 'loading',
-      text: 'Yazıyor...',
+      text: t.typing || 'Yazıyor...', // çeviri varsa kullan
       sender: 'bot',
       isLoading: true,
     };
     setMessages((prev) => [...prev, loadingMsg]);
 
-    const botText = await askAI(userMsg.text);
-
-    setMessages((prev) => [
-      ...prev.filter((m) => m.id !== 'loading'),
-      { id: (Date.now() + 1).toString(), text: botText, sender: 'bot' },
-    ]);
+    try {
+      const botText = await askAI(userMsg.text, language);
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== 'loading'),
+        { id: (Date.now() + 1).toString(), text: botText, sender: 'bot' },
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== 'loading'),
+        { id: (Date.now() + 1).toString(), text: t.aiError, sender: 'bot' },
+      ]);
+    }
   };
 
   const endChat = () => {
@@ -129,7 +121,7 @@ export default function SohbetScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.header, { paddingTop }]}> 
+      <View style={[styles.header, { paddingTop }]}>
         <Text style={styles.headerTitle}>{t.chatTitle}</Text>
       </View>
 

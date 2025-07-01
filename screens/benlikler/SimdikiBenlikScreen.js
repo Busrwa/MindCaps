@@ -19,6 +19,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { translations } from '../../translations';
 import { useLanguage } from '../../LanguageContext';
 
+import { getNowQuestion, generateResponse } from '../../services/api';
+
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
 
 const MessageItem = React.memo(({ item }) => {
@@ -46,7 +48,7 @@ const SimdikiBenlik = () => {
   const route = useRoute();
   const flatListRef = useRef();
 
-  const { language } = useLanguage(); // 🌐 Global dil bilgisi
+  const { language } = useLanguage();
   const t = translations[language];
 
   const [messages, setMessages] = useState([]);
@@ -77,8 +79,7 @@ const SimdikiBenlik = () => {
 
   const fetchNextQuestion = async (index) => {
     try {
-      const res = await fetch(`http://192.168.0.12:5000/get-now-question?index=${index}&language=${language}`);
-      const data = await res.json();
+      const data = await getNowQuestion(index, language);
       if (data.question) {
         setMessages((prev) => [
           ...prev,
@@ -112,17 +113,11 @@ const SimdikiBenlik = () => {
     ]);
 
     try {
-      const res = await fetch('http://192.168.0.12:5000/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: userInput,
-          question: messages[messages.length - 2]?.text || '',
-          language,
-        }),
+      const data = await generateResponse({
+        text: userInput,
+        question: messages[messages.length - 2]?.text || '',
+        language,
       });
-
-      const data = await res.json();
 
       setMessages((prev) => [
         ...prev.filter((msg) => !msg.isLoading),
@@ -201,7 +196,7 @@ const SimdikiBenlik = () => {
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder={t.placeholder}
+                placeholder={t.placeholderAnswer}
                 value={inputText}
                 onChangeText={setInputText}
                 multiline

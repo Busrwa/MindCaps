@@ -14,6 +14,7 @@ import LottieView from 'lottie-react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { translations } from '../../translations';
+import { analyzeEmotions } from '../../services/api';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -106,19 +107,9 @@ export default function SohbetAnalizScreen({ navigation, route }) {
 
     setLoading(true);
 
-    fetch("http://192.168.3.216:5000/analyze-emotions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texts: messages, language }),
-    })
-      .then(res => res.json())
+    analyzeEmotions(messages, language)
       .then(json => {
         setLoading(false);
-        if (json.error) {
-          setAiEvaluationText(aiMessages.errorPrefix + json.error);
-          setEmotionsData([]);
-          return;
-        }
 
         const emotions = json.emotions || {};
         const colorsForLanguage = emotionColors[language] || emotionColors['en'];
@@ -167,23 +158,28 @@ export default function SohbetAnalizScreen({ navigation, route }) {
       },
     ]);
   };
-if (loading) {
-  return (
-    <SafeAreaView style={styles.loadingContainer}>
-      <LottieView
-        source={require('../../assets/analiz.json')}
-        autoPlay
-        loop
-        style={styles.lottieBigger}
-      />
-      <View style={styles.loadingTextContainer}>
-        <MaterialCommunityIcons name="brain" size={30} color="#2E7D32" style={{ marginRight: 10 }} />
-        <Text style={styles.loadingTextBig}>{t.loading}</Text>
-      </View>
-    </SafeAreaView>
-  );
-}
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <LottieView
+          source={require('../../assets/analiz.json')}
+          autoPlay
+          loop
+          style={styles.lottieBigger}
+        />
+        <View style={styles.loadingTextContainer}>
+          <MaterialCommunityIcons
+            name="brain"
+            size={30}
+            color="#2E7D32"
+            style={{ marginRight: 10 }}
+          />
+          <Text style={styles.loadingTextBig}>{t.loading}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -350,36 +346,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   loadingContainer: {
-  flex: 1,
-  justifyContent: 'flex-start',  // Yukarı hizalama
-  alignItems: 'center',
-  backgroundColor: '#ffffff',
-  paddingHorizontal: 32,
-  paddingTop: 150,  // Animasyonun ekranın üstüne yaklaşmasını sağlar
-},
-lottieBigger: {
-  width: screenWidth * 0.85,
-  height: screenWidth * 0.85,
-  marginBottom: 20,
-},
-loadingTextContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#E8F5E9',
-  paddingHorizontal: 18,
-  paddingVertical: 12,
-  borderRadius: 14,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 5,
-},
-loadingTextBig: {
-  fontSize: 20,
-  fontWeight: '700',
-  color: '#2E7D32',
-},
-
-
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 32,
+    paddingTop: 150,
+  },
+  lottieBigger: {
+    width: screenWidth * 0.85,
+    height: screenWidth * 0.85,
+    marginBottom: 20,
+  },
+  loadingTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  loadingTextBig: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2E7D32',
+  },
 });

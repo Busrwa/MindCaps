@@ -19,6 +19,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useLanguage } from '../../LanguageContext';
 import { translations } from '../../translations';
 
+import { getNextQuestion, generateResponse } from '../../services/api';
+
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
 
 const MessageItem = React.memo(({ item }) => {
@@ -42,7 +44,7 @@ const MessageItem = React.memo(({ item }) => {
 
 const GecmisBenlik = () => {
   const { language } = useLanguage();
-  const t = translations[language]; // çeviri dosyasından metinleri al
+  const t = translations[language];
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const flatListRef = useRef();
@@ -73,8 +75,7 @@ const GecmisBenlik = () => {
 
   const fetchNextQuestion = async (index) => {
     try {
-      const res = await fetch(`http://192.168.0.12:5000/get-next-question?index=${index}&language=${language}`);
-      const data = await res.json();
+      const data = await getNextQuestion(index, language);
       if (data.question) {
         setMessages((prev) => [
           ...prev,
@@ -108,17 +109,11 @@ const GecmisBenlik = () => {
     ]);
 
     try {
-      const res = await fetch('http://192.168.0.12:5000/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: userInput,
-          question: messages[messages.length - 2]?.text || '',
-          language,
-        }),
+      const data = await generateResponse({
+        text: userInput,
+        question: messages[messages.length - 2]?.text || '',
+        language,
       });
-
-      const data = await res.json();
 
       setMessages((prev) => [
         ...prev.filter((msg) => !msg.isLoading),
@@ -129,7 +124,7 @@ const GecmisBenlik = () => {
       setQuestionIndex(nextIndex);
       if (nextIndex > 1) setShowContinue(true);
       fetchNextQuestion(nextIndex);
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev.filter((msg) => !msg.isLoading),
         { id: `err-${Date.now()}`, text: t.errors.responseFail, sender: 'bot' },
@@ -149,7 +144,7 @@ const GecmisBenlik = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Text style={styles.headerTitle}>{t.chatTitle}</Text>
+        <Text style={styles.headerTitle}>{t.chatTitlePast}</Text>
       </View>
 
       {showAnimation ? (

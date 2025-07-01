@@ -11,11 +11,11 @@ import {
   Platform,
 } from "react-native";
 import LottieView from "lottie-react-native";
-import axios from "axios";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLanguage } from "../../LanguageContext";
 import { translations } from "../../translations";
+import { generateFutureMessage } from "../../services/api"; 
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -38,14 +38,8 @@ export default function GelecekBenlik({ route, navigation }) {
   const fetchFutureMessage = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(
-        "http://192.168.0.12:5000/generate-future-message",
-        {
-          history,
-          language,
-        }
-      );
-      setMessage(response.data.message || t.noMessage);
+      const data = await generateFutureMessage(history, language);
+      setMessage(data.message || t.noMessage);
     } catch (error) {
       setMessage(t.errorMessage);
     } finally {
@@ -58,7 +52,6 @@ export default function GelecekBenlik({ route, navigation }) {
     await fetchFutureMessage();
   };
 
-  // ScrollView yüksekliği = ekran yüksekliği - header yüksekliği - buton yüksekliği - safe area bottom - ekstra padding
   const scrollViewHeight =
     screenHeight - paddingTop - BUTTON_HEIGHT - paddingBottom - 32;
 
@@ -103,12 +96,7 @@ export default function GelecekBenlik({ route, navigation }) {
           <View style={styles.contentContainer}>
             <ScrollView
               style={[styles.scrollView, { height: scrollViewHeight }]}
-              contentContainerStyle={{
-                flexGrow: 1,
-                padding: 20,
-                paddingBottom: BUTTON_HEIGHT + 20, // Buton için boşluk
-                backgroundColor: "#F8F8F8",
-              }}
+              contentContainerStyle={styles.scrollContent}
               keyboardShouldPersistTaps="handled"
             >
               <View style={styles.messageContainer}>
@@ -205,6 +193,11 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flexGrow: 0,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
+    backgroundColor: "#F8F8F8",
   },
   messageContainer: {
     backgroundColor: "rgba(46, 125, 50, 0.1)",
