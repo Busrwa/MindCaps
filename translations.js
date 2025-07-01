@@ -241,8 +241,54 @@ export const translations = {
       errorPrefix: 'Hata: ',
       serverError: 'Sunucuya bağlanırken hata oluştu.',
       disclaimer: '⚠️ Bu analiz yalnızca yapay zekaya dayalıdır ve %100 doğru olmayabilir. Ruhsal destek ihtiyacınız varsa bir uzmana başvurun.',
-    }
-
+    },
+    //Benlikler için
+    onboarding: [
+      {
+        title: 'Benliklerle Büyüleyici Bir Yolculuk Başlıyor',
+        subtitle: 'Bu uygulamada geçmişini keşfedecek, şu anki duygularını anlayacak ve gelecekteki kendinden sana özel bir mesaj alacaksın.',
+        animation: require('./assets/letter_borading.json'),
+      },
+      {
+        title: 'Geçmiş ve Şimdiki Sen ile Sohbet Et',
+        subtitle: 'Sana özel sorularla geçmişte seni etkileyen anıları ve şu anki düşüncelerini anlamaya çalışacağız.',
+        animation: require('./assets/question.json'),
+      },
+      {
+        title: 'Gelecekteki Sen Sana Bir Mektup Gönderdi',
+        subtitle: 'Verdiğin yanıtlar doğrultusunda, gelecekteki senin sana yazdığı anlamlı bir mesaj kutusunu birlikte açacağız.',
+        animation: require('./assets/future_letter.json'),
+      },
+    ],
+    skip: 'Atla',
+    next: 'İleri',
+    start: 'Başla',
+    chatTitle: 'Geçmiş Benlik',
+    inputPlaceholder: 'Cevabınızı yazın...',
+    continue: 'Devam Et',
+    sendingMessage: 'Mesajlarınız gönderiliyor... Şimdiki benlik analiziniz için devam ediliyor.',
+    typing: 'Yazıyor...',
+    errors: {
+      questionFetchFail: 'Soru alınamadı.',
+      responseFail: 'Cevap alınamadı.',
+    },
+    //Şimdiki benlik
+    currentSelf: "Şimdiki Benlik",
+    placeholder: "Cevabınızı yazın...",
+    sendingAnswers: "Mesajlarınız gönderiliyor... Gelecek benlik analiziniz için devam ediliyor.",
+    send: "Gönder",
+    continue: "Devam Et",
+    errorGettingQuestion: "Soru alınamadı.",
+    errorGettingResponse: "Cevap alınamadı.",
+    typing: "Yazıyor...",
+    //Gelecek için
+    futureSelf: 'Gelecek Benlik',
+    readLetter: 'Gelecekten gelen mektubunu okumak için tıkla',
+    analyzing: 'Analiz ediliyor...',
+    fromFutureToNow: 'Gelecek Ben’den Şu Anki Ben’e:',
+    backToHome: 'Ana Ekrana Dön',
+    errorMessage: 'Bir hata oluştu. Lütfen daha sonra tekrar deneyin.',
+    noMessage: 'Mesaj alınamadı.',
   },
 
   en: {
@@ -482,6 +528,53 @@ export const translations = {
       errorPrefix: 'Error: ',
       serverError: 'Error connecting to server.',
       disclaimer: '⚠️ This analysis is AI-generated and may not be 100% accurate. Please consult a mental health professional if needed..',
-    }
+    },
+  //Benlikler için
+  onboarding: [
+      {
+        title: 'An Enchanting Journey With Selves Begins',
+        subtitle: 'In this app, you will explore your past, understand your current feelings, and receive a special message from your future self.',
+        animation: require('./assets/letter_borading.json'),
+      },
+      {
+        title: 'Chat With Your Past and Present Self',
+        subtitle: 'We will try to understand memories that affected you and your current thoughts with personalized questions.',
+        animation: require('./assets/question.json'),
+      },
+      {
+        title: 'Your Future Self Sent You a Letter',
+        subtitle: 'Based on your answers, we will open a meaningful message box written by your future self together.',
+        animation: require('./assets/future_letter.json'),
+      },
+    ],
+    skip: 'Skip',
+    next: 'Next',
+    start: 'Start',
+    chatTitle: 'Past Self',
+    inputPlaceholder: 'Type your answer...',
+    continue: 'Continue',
+    sendingMessage: 'Sending your messages... Preparing your current self analysis.',
+    typing: 'Typing...',
+    errors: {
+      questionFetchFail: 'Failed to fetch question.',
+      responseFail: 'Failed to receive response.',
+    },
+    //Şimdiki benlik
+    currentSelf: "Current Self",
+    placeholder: "Type your answer...",
+    sendingAnswers: "Your messages are being sent... Continuing to your future self analysis.",
+    send: "Send",
+    continue: "Continue",
+    errorGettingQuestion: "Failed to fetch question.",
+    errorGettingResponse: "Failed to get response.",
+    typing: "Typing...",
+    //Gelecek için
+    futureSelf: 'Future Self',
+    readLetter: 'Tap to read your letter from the future',
+    analyzing: 'Analyzing...',
+    fromFutureToNow: 'From Future Self to Current You:',
+    backToHome: 'Back to Home',
+    errorMessage: 'An error occurred. Please try again later.',
+    noMessage: 'No message received.',
   },
 };

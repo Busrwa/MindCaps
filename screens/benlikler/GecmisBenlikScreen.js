@@ -16,6 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
 
+import { useLanguage } from '../../LanguageContext';
+import { translations } from '../../translations';
+
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
 
 const MessageItem = React.memo(({ item }) => {
@@ -38,6 +41,8 @@ const MessageItem = React.memo(({ item }) => {
 });
 
 const GecmisBenlik = () => {
+  const { language } = useLanguage();
+  const t = translations[language]; // çeviri dosyasından metinleri al
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const flatListRef = useRef();
@@ -49,6 +54,7 @@ const GecmisBenlik = () => {
   const [showAnimation, setShowAnimation] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
   const [showContinue, setShowContinue] = useState(false);
+  const [userAnswers, setUserAnswers] = useState([]);
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
@@ -67,7 +73,7 @@ const GecmisBenlik = () => {
 
   const fetchNextQuestion = async (index) => {
     try {
-      const res = await fetch(`http://192.168.0.12:5000/get-next-question?index=${index}`);
+      const res = await fetch(`http://192.168.0.12:5000/get-next-question?index=${index}&language=${language}`);
       const data = await res.json();
       if (data.question) {
         setMessages((prev) => [
@@ -80,7 +86,7 @@ const GecmisBenlik = () => {
     } catch {
       setMessages((prev) => [
         ...prev,
-        { id: `err-${Date.now()}`, text: 'Soru alınamadı.', sender: 'bot' },
+        { id: `err-${Date.now()}`, text: t.errors.questionFetchFail, sender: 'bot' },
       ]);
     }
   };
@@ -91,13 +97,14 @@ const GecmisBenlik = () => {
 
     const userMsg = { id: Date.now().toString(), text: userInput, sender: 'user' };
     setMessages((prev) => [...prev, userMsg]);
+    setUserAnswers((prev) => [...prev, userInput]);
     setInputText('');
     setIsWaiting(true);
 
     const loadingId = `loading-${Date.now()}`;
     setMessages((prev) => [
       ...prev,
-      { id: loadingId, text: 'Yazıyor...', sender: 'bot', isLoading: true },
+      { id: loadingId, text: t.typing, sender: 'bot', isLoading: true },
     ]);
 
     try {
@@ -105,11 +112,10 @@ const GecmisBenlik = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-  text: userInput,
-  question: messages[messages.length - 2]?.text || '',  // son soru mesajı
-  language: 'tr',
-}),
-
+          text: userInput,
+          question: messages[messages.length - 2]?.text || '',
+          language,
+        }),
       });
 
       const data = await res.json();
@@ -126,7 +132,7 @@ const GecmisBenlik = () => {
     } catch (err) {
       setMessages((prev) => [
         ...prev.filter((msg) => !msg.isLoading),
-        { id: `err-${Date.now()}`, text: 'Cevap alınamadı.', sender: 'bot' },
+        { id: `err-${Date.now()}`, text: t.errors.responseFail, sender: 'bot' },
       ]);
     } finally {
       setIsWaiting(false);
@@ -136,14 +142,14 @@ const GecmisBenlik = () => {
   const showEndAnimation = () => {
     setShowAnimation(true);
     setTimeout(() => {
-      navigation.navigate('SimdikiBenlik');
+      navigation.navigate('SimdikiBenlik', { history: userAnswers });
     }, 3000);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Text style={styles.headerTitle}>Geçmiş Benlik</Text>
+        <Text style={styles.headerTitle}>{t.chatTitle}</Text>
       </View>
 
       {showAnimation ? (
@@ -154,9 +160,7 @@ const GecmisBenlik = () => {
             loop={false}
             style={{ width: 200, height: 200 }}
           />
-          <Text style={styles.animationText}>
-            Mesajlarınız gönderiliyor... Şimdiki benlik analiziniz için devam ediliyor.
-          </Text>
+          <Text style={styles.animationText}>{t.sendingMessage}</Text>
         </View>
       ) : (
         <KeyboardAvoidingView
@@ -184,14 +188,14 @@ const GecmisBenlik = () => {
           >
             {showContinue && (
               <TouchableOpacity style={styles.continueButton} onPress={showEndAnimation}>
-                <Text style={styles.continueButtonText}>Devam Et</Text>
+                <Text style={styles.continueButtonText}>{t.continue}</Text>
               </TouchableOpacity>
             )}
 
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="Cevabınızı yazın..."
+                placeholder={t.inputPlaceholder}
                 value={inputText}
                 onChangeText={setInputText}
                 multiline
@@ -226,7 +230,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#1B5E20',
+    color: '#2E7D32',
   },
   container: {
     flex: 1,
@@ -332,6 +336,5 @@ const styles = StyleSheet.create({
     color: '#333333',
   },
 });
-
 
 export default GecmisBenlik;

@@ -1,70 +1,244 @@
-import React from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
   StyleSheet,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+  TouchableOpacity,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import LottieView from "lottie-react-native";
+import axios from "axios";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function GelecekBenlikScreen() {
+import { useLanguage } from "../../LanguageContext";
+import { translations } from "../../translations";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+
+const BUTTON_HEIGHT = 56;
+
+export default function GelecekBenlik({ route, navigation }) {
   const insets = useSafeAreaInsets();
+  const paddingTop = Math.min(Math.max(insets.top, 12), 28);
+  const paddingBottom = insets.bottom;
 
-  const cevaplar = [
-    'Bir gün kendi işimi kurmak.',
-    'Dünyayı gezmek istiyorum.',
-    'Mutlu bir aileye sahip olmak.',
-    'Yüksek lisans yaparak akademik kariyer hedefliyorum.',
-  ];
+  const { language } = useLanguage();
+  const t = translations[language];
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [showMessage, setShowMessage] = useState(false);
+
+  const history = route.params?.history || [];
+
+  const fetchFutureMessage = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        "http://192.168.0.12:5000/generate-future-message",
+        {
+          history,
+          language,
+        }
+      );
+      setMessage(response.data.message || t.noMessage);
+    } catch (error) {
+      setMessage(t.errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStart = async () => {
+    setShowMessage(true);
+    await fetchFutureMessage();
+  };
+
+  // ScrollView yüksekliği = ekran yüksekliği - header yüksekliği - buton yüksekliği - safe area bottom - ekstra padding
+  const scrollViewHeight =
+    screenHeight - paddingTop - BUTTON_HEIGHT - paddingBottom - 32;
 
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        {
-          paddingTop: insets.top + 20,
-          paddingBottom: insets.bottom + 30,
-        },
-      ]}
-    >
-      <Text style={styles.title}>Gelecek Benlik</Text>
-
-      <View style={styles.questionBubble}>
-        <Text style={styles.questionText}>“Gelecekte en çok neyi başarmak istiyorsun?”</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.header, { paddingTop }]}>
+        <Text style={styles.headerTitle}>{t.futureSelf}</Text>
       </View>
 
-      <View style={styles.answersContainer}>
-        {cevaplar.map((cevap, index) => (
-          <View key={index} style={styles.answerBubble}>
-            <Text style={styles.answerText}>{cevap}</Text>
+      {!showMessage && (
+        <View style={styles.initialContainer}>
+          <LottieView
+            source={require("../../assets/future_message.json")}
+            autoPlay
+            loop
+            style={styles.futureMessageAnimation}
+          />
+          <TouchableOpacity style={styles.button} onPress={handleStart}>
+            <Text style={styles.buttonText}>{t.readLetter}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {showMessage && loading && (
+        <View style={styles.analysisContainer}>
+          <LottieView
+            source={require("../../assets/analiz.json")}
+            autoPlay
+            loop
+            style={styles.analysisAnimation}
+          />
+          <Text style={styles.analysisText}>{t.analyzing}</Text>
+        </View>
+      )}
+
+      {showMessage && !loading && (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={[styles.keyboardAvoidingView, { paddingBottom }]}
+          keyboardVerticalOffset={paddingTop + 44}
+        >
+          <View style={styles.contentContainer}>
+            <ScrollView
+              style={[styles.scrollView, { height: scrollViewHeight }]}
+              contentContainerStyle={{
+                flexGrow: 1,
+                padding: 20,
+                paddingBottom: BUTTON_HEIGHT + 20, // Buton için boşluk
+                backgroundColor: "#F8F8F8",
+              }}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.messageContainer}>
+                <Text style={styles.messageTitle}>{t.fromFutureToNow}</Text>
+                <Text style={styles.messageText}>{message}</Text>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.backButton, { marginBottom: paddingBottom + 10 }]}
+              onPress={() => navigation.navigate("BenliklerMain")}
+            >
+              <Text style={styles.backButtonText}>{t.backToHome}</Text>
+            </TouchableOpacity>
           </View>
-        ))}
-      </View>
-
-      <View style={styles.inputRow}>
-        <Ionicons name="search" size={20} color="#888" />
-        <TextInput
-          style={styles.input}
-          placeholder="Geleceğini hayal et"
-          placeholderTextColor="#888"
-        />
-      </View>
-
-      <TouchableOpacity style={styles.primaryButton}>
-        <Text style={styles.primaryButtonText}>Sohbeti Kaydet ve Bitir</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.secondaryButton}>
-        <Text style={styles.secondaryButtonText}>Yalnızca Bitir</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        </KeyboardAvoidingView>
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  // aynı stiller kullanılabilir
-  ...require('./GecmisBenlikScreen').default.styles
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F8F8F8",
+  },
+  header: {
+    alignItems: "center",
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+    backgroundColor: "#fff",
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#2E7D32",
+  },
+  initialContainer: {
+    flex: 1,
+    justifyContent: "flex-start",
+    alignItems: "center",
+    paddingTop: 80,
+    paddingHorizontal: 32,
+  },
+  futureMessageAnimation: {
+    width: screenWidth * 0.75,
+    height: screenWidth * 0.75,
+    marginBottom: 20,
+  },
+  button: {
+    backgroundColor: "#2E7D32",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    marginTop: 12,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  analysisContainer: {
+    flex: 1,
+    justifyContent: "flex-start",
+    alignItems: "center",
+    paddingTop: 120,
+    paddingHorizontal: 32,
+  },
+  analysisAnimation: {
+    width: screenWidth * 0.7,
+    height: screenWidth * 0.7,
+    marginBottom: 20,
+  },
+  analysisText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1B5E20",
+    backgroundColor: "#E8F5E9",
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    textAlign: "center",
+  },
+
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  contentContainer: {
+    flex: 1,
+    position: "relative",
+  },
+  scrollView: {
+    flexGrow: 0,
+  },
+  messageContainer: {
+    backgroundColor: "rgba(46, 125, 50, 0.1)",
+    borderRadius: 16,
+    padding: 20,
+    width: "100%",
+    flex: 1,
+    justifyContent: "flex-start",
+  },
+  messageTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#2E7D32",
+    marginBottom: 8,
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 26,
+    color: "#1B5E20",
+  },
+  backButton: {
+    position: "absolute",
+    bottom: 10,
+    left: 20,
+    right: 20,
+    backgroundColor: "#2E7D32",
+    paddingVertical: 14,
+    borderRadius: 24,
+    zIndex: 10,
+  },
+  backButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+  },
 });

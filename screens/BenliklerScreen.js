@@ -9,36 +9,24 @@ import {
 } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLanguage } from '../LanguageContext'; // Dil seçimi için context
+import { translations } from '../translations';
 
 const { width, height } = Dimensions.get('window');
-
-const onboardingData = [
-  {
-    title: 'Benliklerle Büyüleyici Bir Yolculuk Başlıyor',
-    subtitle: 'Bu uygulamada geçmişini keşfedecek, şu anki duygularını anlayacak ve gelecekteki kendinden sana özel bir mesaj alacaksın.',
-    animation: require('../assets/letter_borading.json'),
-  },
-  {
-    title: 'Geçmiş ve Şimdiki Sen ile Sohbet Et',
-    subtitle: 'Sana özel sorularla geçmişte seni etkileyen anıları ve şu anki düşüncelerini anlamaya çalışacağız.',
-    animation: require('../assets/question.json'),
-  },
-  {
-    title: 'Gelecekteki Sen Sana Bir Mektup Gönderdi',
-    subtitle: 'Verdiğin yanıtlar doğrultusunda, gelecekteki senin sana yazdığı anlamlı bir mesaj kutusunu birlikte açacağız.',
-    animation: require('../assets/future_letter.json'),
-  },
-];
 
 export default function BenliklerOnboardingScreen({ navigation }) {
   const scrollRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  const { language } = useLanguage();
+  const t = translations[language];
+  const onboardingData = t.onboarding;
+
   const handleNext = (index) => {
     if (index < onboardingData.length - 1) {
       scrollRef.current?.scrollTo({ x: width * (index + 1), animated: true });
     } else {
-      navigation.replace('GecmisBenlik');
+      navigation.navigate('GecmisBenlik'); // Son slaytta yönlendirme
     }
   };
 
@@ -60,12 +48,11 @@ export default function BenliklerOnboardingScreen({ navigation }) {
       >
         {onboardingData.map((item, index) => (
           <View key={index} style={styles.page}>
-            {/* Atla Butonu */}
             <TouchableOpacity
               style={styles.skipButton}
-              onPress={() => navigation.replace('GecmisBenlik')}
+              onPress={() => navigation.navigate('GecmisBenlik')}
             >
-              <Text style={styles.skipButtonText}>Atla</Text>
+              <Text style={styles.skipButtonText}>{t.skip}</Text>
             </TouchableOpacity>
 
             <View style={styles.contentWrapper}>
@@ -79,7 +66,6 @@ export default function BenliklerOnboardingScreen({ navigation }) {
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.subtitle}>{item.subtitle}</Text>
 
-              {/* Dot'lar */}
               <View style={styles.dotsContainer}>
                 {onboardingData.map((_, i) => (
                   <View
@@ -92,13 +78,12 @@ export default function BenliklerOnboardingScreen({ navigation }) {
                 ))}
               </View>
 
-              {/* İleri / Başla Butonu */}
               <TouchableOpacity
                 style={styles.button}
                 onPress={() => handleNext(index)}
               >
                 <Text style={styles.buttonText}>
-                  {index === onboardingData.length - 1 ? 'Başla' : 'İleri'}
+                  {index === onboardingData.length - 1 ? t.start : t.next}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -124,11 +109,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-    marginTop: -40,
+    marginTop: -80,
   },
   skipButton: {
     position: 'absolute',
-    top: 70,
+    top: 40,
     right: 20,
     backgroundColor: '#fff',
     borderWidth: 1.5,
@@ -146,26 +131,26 @@ const styles = StyleSheet.create({
   lottie: {
     width: width * 0.7,
     height: width * 0.7,
-    marginBottom: 24,
+    marginBottom: 32,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#2E7D32',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
     color: '#555',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
     lineHeight: 22,
   },
   dotsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
   },
   dot: {
     width: 10,
@@ -181,8 +166,8 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#2E7D32',
-    paddingVertical: 12,
-    paddingHorizontal: 32,
+    paddingVertical: 14,
+    paddingHorizontal: 36,
     borderRadius: 20,
   },
   buttonText: {

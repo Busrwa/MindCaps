@@ -183,14 +183,14 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingBottom: 12,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#ddd',
     borderBottomWidth: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#fff',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '600',
-    color: '#1B5E20',
+    color: '#2E7D32',
   },
   container: {
     flex: 1,

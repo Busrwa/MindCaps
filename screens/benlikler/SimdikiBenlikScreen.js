@@ -14,7 +14,10 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import LottieView from 'lottie-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+
+import { translations } from '../../translations';
+import { useLanguage } from '../../LanguageContext';
 
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
 
@@ -40,7 +43,11 @@ const MessageItem = React.memo(({ item }) => {
 const SimdikiBenlik = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const route = useRoute();
   const flatListRef = useRef();
+
+  const { language } = useLanguage(); // 🌐 Global dil bilgisi
+  const t = translations[language];
 
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -49,6 +56,9 @@ const SimdikiBenlik = () => {
   const [showAnimation, setShowAnimation] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
   const [showContinue, setShowContinue] = useState(false);
+  const [userAnswers, setUserAnswers] = useState([]);
+
+  const previousAnswers = route.params?.history || [];
 
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
@@ -67,7 +77,7 @@ const SimdikiBenlik = () => {
 
   const fetchNextQuestion = async (index) => {
     try {
-      const res = await fetch(`http://192.168.0.12:5000/get-now-question?index=${index}`);
+      const res = await fetch(`http://192.168.0.12:5000/get-now-question?index=${index}&language=${language}`);
       const data = await res.json();
       if (data.question) {
         setMessages((prev) => [
@@ -80,7 +90,7 @@ const SimdikiBenlik = () => {
     } catch {
       setMessages((prev) => [
         ...prev,
-        { id: `err-${Date.now()}`, text: 'Soru alınamadı.', sender: 'bot' },
+        { id: `err-${Date.now()}`, text: t.errorGettingQuestion, sender: 'bot' },
       ]);
     }
   };
@@ -91,13 +101,14 @@ const SimdikiBenlik = () => {
 
     const userMsg = { id: Date.now().toString(), text: userInput, sender: 'user' };
     setMessages((prev) => [...prev, userMsg]);
+    setUserAnswers((prev) => [...prev, userInput]);
     setInputText('');
     setIsWaiting(true);
 
     const loadingId = `loading-${Date.now()}`;
     setMessages((prev) => [
       ...prev,
-      { id: loadingId, text: 'Yazıyor...', sender: 'bot', isLoading: true },
+      { id: loadingId, text: t.typing, sender: 'bot', isLoading: true },
     ]);
 
     try {
@@ -107,7 +118,7 @@ const SimdikiBenlik = () => {
         body: JSON.stringify({
           text: userInput,
           question: messages[messages.length - 2]?.text || '',
-          language: 'tr',
+          language,
         }),
       });
 
@@ -122,10 +133,10 @@ const SimdikiBenlik = () => {
       setQuestionIndex(nextIndex);
       if (nextIndex > 1) setShowContinue(true);
       fetchNextQuestion(nextIndex);
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev.filter((msg) => !msg.isLoading),
-        { id: `err-${Date.now()}`, text: 'Cevap alınamadı.', sender: 'bot' },
+        { id: `err-${Date.now()}`, text: t.errorGettingResponse, sender: 'bot' },
       ]);
     } finally {
       setIsWaiting(false);
@@ -135,14 +146,16 @@ const SimdikiBenlik = () => {
   const showEndAnimation = () => {
     setShowAnimation(true);
     setTimeout(() => {
-      navigation.navigate('GelecekBenlik');
+      navigation.navigate('GelecekBenlik', {
+        history: [...previousAnswers, ...userAnswers],
+      });
     }, 3000);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <Text style={styles.headerTitle}>Şimdiki Benlik</Text>
+        <Text style={styles.headerTitle}>{t.currentSelf}</Text>
       </View>
 
       {showAnimation ? (
@@ -154,7 +167,7 @@ const SimdikiBenlik = () => {
             style={{ width: 200, height: 200 }}
           />
           <Text style={styles.animationText}>
-            Mesajlarınız gönderiliyor... Gelecek benlik analiziniz için devam ediliyor.
+            {t.sendingAnswers}
           </Text>
         </View>
       ) : (
@@ -181,14 +194,14 @@ const SimdikiBenlik = () => {
           >
             {showContinue && (
               <TouchableOpacity style={styles.continueButton} onPress={showEndAnimation}>
-                <Text style={styles.continueButtonText}>Devam Et</Text>
+                <Text style={styles.continueButtonText}>{t.continue}</Text>
               </TouchableOpacity>
             )}
 
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="Cevabınızı yazın..."
+                placeholder={t.placeholder}
                 value={inputText}
                 onChangeText={setInputText}
                 multiline
@@ -223,7 +236,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#1B5E20',
+    color: '#2E7D32',
   },
   container: {
     flex: 1,
