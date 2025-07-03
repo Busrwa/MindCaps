@@ -73,6 +73,8 @@ export default function GelecekBenlik({ route, navigation }) {
           language: language,
         }
       );
+      setMessage('');  // MESAJI TEMİZLE
+
 
       Alert.alert(
         t.messageSaved || "Mesaj başarıyla kaydedildi.",
@@ -148,8 +150,11 @@ export default function GelecekBenlik({ route, navigation }) {
                 <Text style={styles.buttonTextWhite}>{t.save}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.dualButtonOutlined}
-                onPress={() => navigation.navigate("BenliklerMain")}
+                  style={styles.dualButtonOutlined}
+  onPress={() => {
+    setMessage(''); // mesajı temizle
+    navigation.navigate("BenliklerMain");
+  }}
               >
                 <Text style={styles.buttonTextGreen}>{t.backToHome}</Text>
               </TouchableOpacity>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useLanguage } from '../LanguageContext';
 import { translations } from '../translations';
+import { auth, db } from '../services/firebase'; 
+import { doc, getDoc } from 'firebase/firestore';
 
 const { width } = Dimensions.get('window');
 const ICON_SIZE = 26;
@@ -25,6 +27,9 @@ export default function ProfilScreen({ navigation }) {
   const { language } = useLanguage();
   const t = translations[language];
 
+  const [username, setUsername] = useState(null);
+
+
   const handleLogout = () => {
     navigation.navigate('Start');
   };
@@ -32,6 +37,29 @@ export default function ProfilScreen({ navigation }) {
   const handleNavigate = (screen) => {
     navigation.navigate(screen);
   };
+
+    useEffect(() => {
+    const fetchUsername = async () => {
+      try {
+        const userId = auth.currentUser?.uid;
+        if (!userId) return;
+
+        const userDocRef = doc(db, 'users', userId);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          if (userData.username) {
+            setUsername(userData.username);
+          }
+        }
+      } catch (error) {
+        console.error('Kullanıcı adı yüklenirken hata:', error);
+      }
+    };
+
+    fetchUsername();
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -44,8 +72,15 @@ export default function ProfilScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.iconWrapper}>
-          <Image source={require('../assets/icon.png')} style={styles.profileIcon} />
-        </View>
+  <Image source={require('../assets/icon.png')} style={styles.profileIcon} />
+  <View style={styles.welcomeContainer}>
+    <Text style={styles.welcomeText}>
+      {username ? `Hoşgeldin, ${username}!` : 'Hoşgeldin'}
+    </Text>
+  </View>
+</View>
+
+
 
         <Text style={styles.sectionTitle}>{t.generalSettings}</Text>
 
@@ -183,4 +218,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  welcomeContainer: {
+  marginTop: 12,
+  alignItems: 'center',
+},
+welcomeText: {
+  fontSize: 20,
+  fontWeight: '600',
+  color: '#2E7D32',
+},
+
 });

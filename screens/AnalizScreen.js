@@ -13,7 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import { useLanguage } from '../LanguageContext';
 import { translations } from '../translations';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
 import { differenceInDays } from 'date-fns';
 import getQuotesByLanguage from '../utils/quotes';
@@ -64,26 +64,25 @@ export default function AnalizScreen() {
   const [futureMessages, setFutureMessages] = useState(0);
   const [quote, setQuote] = useState(null);
 
-  // Yeni: Modal için state
+  // Modal için state
   const [modalVisible, setModalVisible] = useState(false);
   const [modalText, setModalText] = useState('');
 
   // Bölüm açıklamaları (dil destekli)
-const infoTexts = {
-  emotionMap: {
-    tr: 'Yapay zeka, kaydedilen sohbet konuşmalarınızdan duygularınızı analiz eder ve bunların günlük ve haftalık yüzdelik dağılımını temel duygu kategorilerine göre gösterir.',
-    en: 'AI analyzes your saved chat conversations to calculate your emotions and shows their daily and weekly percentage distribution based on basic emotion categories.',
-  },
-  thematicIntensity: {
-    tr: 'Sohbetlerinizdeki temel duygulara dayanarak "Düşük Benlik", "Gelecek Kaygısı" ve "Yalnızlık" temalarının yüzdelik yoğunluğunu hesaplar. Bu üç tema; özgüven eksikliği, geleceğe dair endişeler ve sosyal izolasyon durumlarını yansıtır. Haftalık ve aylık olarak görüntülenebilir.',
-    en: 'Based on your core emotions in chats, it calculates the percentage intensity of the themes "Low Self-Esteem", "Future Anxiety", and "Loneliness". These represent lack of confidence, worries about the future, and social isolation respectively. Can be viewed weekly and monthly.',
-  },
-  chatStats: {
-    tr: 'Toplam sohbet, kaydedilen tüm sohbetlerin sayısını belirtir. Toplam zaman kapsülü ise "Benlikler" sayfasında geleceğe yönelik kaydettiğiniz mektupların sayısını ifade eder.',
-    en: 'Total chats represent the count of all saved conversations. Total time capsules indicate how many future-directed letters you have saved on the "Selves" page.',
-  },
-};
-
+  const infoTexts = {
+    emotionMap: {
+      tr: 'Yapay zeka, kaydedilen sohbet konuşmalarınızdan duygularınızı analiz eder ve bunların günlük ve haftalık yüzdelik dağılımını temel duygu kategorilerine göre gösterir.',
+      en: 'AI analyzes your saved chat conversations to calculate your emotions and shows their daily and weekly percentage distribution based on basic emotion categories.',
+    },
+    thematicIntensity: {
+      tr: 'Sohbetlerinizdeki temel duygulara dayanarak "Düşük Benlik", "Gelecek Kaygısı" ve "Yalnızlık" temalarının yüzdelik yoğunluğunu hesaplar. Bu üç tema; özgüven eksikliği, geleceğe dair endişeler ve sosyal izolasyon durumlarını yansıtır. Haftalık ve aylık olarak görüntülenebilir.',
+      en: 'Based on your core emotions in chats, it calculates the percentage intensity of the themes "Low Self-Esteem", "Future Anxiety", and "Loneliness". These represent lack of confidence, worries about the future, and social isolation respectively. Can be viewed weekly and monthly.',
+    },
+    chatStats: {
+      tr: 'Toplam sohbet, kaydedilen tüm sohbetlerin sayısını belirtir. Toplam zaman kapsülü ise "Benlikler" sayfasında geleceğe yönelik kaydettiğiniz mektupların sayısını ifade eder.',
+      en: 'Total chats represent the count of all saved conversations. Total time capsules indicate how many future-directed letters you have saved on the "Selves" page.',
+    },
+  };
 
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * quotes.length);
@@ -105,71 +104,104 @@ const infoTexts = {
   }
 
   useEffect(() => {
-    async function fetchEmotionData() {
-      if (!auth.currentUser) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const userId = auth.currentUser.uid;
-        const chatsSnap = await getDocs(collection(db, 'users', userId, 'chats'));
-        const futureMessagesSnap = await getDocs(collection(db, 'users', userId, 'futureMessages'));
-
-        setTotalChats(chatsSnap.size + futureMessagesSnap.size);
-        setFutureMessages(futureMessagesSnap.size);
-
-        const today = new Date();
-        const dailyCounts = {};
-        const weeklyCounts = {};
-        let dailyTotal = 0;
-        let weeklyTotal = 0;
-
-        chatsSnap.forEach((doc) => {
-          const data = doc.data();
-          const createdAt = data.createdAt?.toDate?.();
-          const emotionsData = data.emotions || {};
-
-          if (!createdAt) return;
-
-          const dayDiff = differenceInDays(today, createdAt);
-
-          if (dayDiff <= 30) {
-            Object.entries(emotionsData).forEach(([emotion, value]) => {
-              dailyCounts[emotion] = (dailyCounts[emotion] || 0) + value;
-              dailyTotal += value;
-            });
-          }
-          if (dayDiff <= 7) {
-            Object.entries(emotionsData).forEach(([emotion, value]) => {
-              weeklyCounts[emotion] = (weeklyCounts[emotion] || 0) + value;
-              weeklyTotal += value;
-            });
-          }
-        });
-
-        const newDailyScores = emotions.map(e =>
-          dailyTotal > 0 ? Math.round((dailyCounts[e] || 0) * 100 / dailyTotal) : 0
-        );
-        const newWeeklyScores = emotions.map(e =>
-          weeklyTotal > 0 ? Math.round((weeklyCounts[e] || 0) * 100 / weeklyTotal) : 0
-        );
-
-        setDailyScores(newDailyScores);
-        setWeeklyScores(newWeeklyScores);
-
-        setThematicWeekly(calculateThematicScores(newWeeklyScores, thematicEmotionWeights));
-        setThematicMonthly(calculateThematicScores(newDailyScores, thematicEmotionWeights));
-
-      } catch (error) {
-        console.error('Firestore veri çekme hatası:', error);
-      } finally {
-        setLoading(false);
-      }
+    if (!auth.currentUser) {
+      setLoading(false);
+      return;
     }
 
-    fetchEmotionData();
+    setLoading(true);
+    const userId = auth.currentUser.uid;
+
+    // chats için gerçek zamanlı dinleme
+    const unsubscribeChats = onSnapshot(collection(db, 'users', userId, 'chats'), (chatsSnap) => {
+      // futureMessages koleksiyonuna da aynı şekilde dinleyici ekleyeceğiz, ama önce chats verisini işle
+      const today = new Date();
+
+      let dailyCounts = {};
+      let weeklyCounts = {};
+      let dailyTotal = 0;
+      let weeklyTotal = 0;
+
+      chatsSnap.forEach((doc) => {
+        const data = doc.data();
+        const createdAt = data.createdAt?.toDate?.();
+        const emotionsData = data.emotions || {};
+
+        if (!createdAt) return;
+
+        const dayDiff = differenceInDays(today, createdAt);
+
+        if (dayDiff <= 30) {
+          Object.entries(emotionsData).forEach(([emotion, value]) => {
+            dailyCounts[emotion] = (dailyCounts[emotion] || 0) + value;
+            dailyTotal += value;
+          });
+        }
+        if (dayDiff <= 7) {
+          Object.entries(emotionsData).forEach(([emotion, value]) => {
+            weeklyCounts[emotion] = (weeklyCounts[emotion] || 0) + value;
+            weeklyTotal += value;
+          });
+        }
+      });
+
+      const newDailyScores = emotions.map(e =>
+        dailyTotal > 0 ? Math.round((dailyCounts[e] || 0) * 100 / dailyTotal) : 0
+      );
+      const newWeeklyScores = emotions.map(e =>
+        weeklyTotal > 0 ? Math.round((weeklyCounts[e] || 0) * 100 / weeklyTotal) : 0
+      );
+
+      setDailyScores(newDailyScores);
+      setWeeklyScores(newWeeklyScores);
+
+      setThematicWeekly(calculateThematicScores(newWeeklyScores, thematicEmotionWeights));
+      setThematicMonthly(calculateThematicScores(newDailyScores, thematicEmotionWeights));
+
+      setLoading(false);
+    });
+
+    // futureMessages için gerçek zamanlı dinleme
+    const unsubscribeFutureMessages = onSnapshot(collection(db, 'users', userId, 'futureMessages'), (futureMessagesSnap) => {
+      setFutureMessages(futureMessagesSnap.size);
+    });
+
+    // totalChats sayısı = chats + futureMessages
+    // TotalChats state'ini bu iki snapshot'ın birleşiminden güncellemek için ayrı useEffect veya state yönetimi gerekebilir,
+    // burada pratik olarak en güncel toplamı göstermek için ayrı state veya logic eklenebilir.
+    // Ancak basitçe: 
+    // chatsSnap.size ve futureMessagesSnap.size toplamını anlık birleştirmek için en kolay yol
+    // her iki snapshot callback'inde setTotalChats'ı güncellemek.
+
+    // Güncelleme: Bunu yapmak için aşağıdaki şekilde:
+
+    let chatsCount = 0;
+    let futuresCount = 0;
+
+    const updateTotalChats = () => {
+      setTotalChats(chatsCount + futuresCount);
+    };
+
+    const unsubscribeChatsWithCount = onSnapshot(collection(db, 'users', userId, 'chats'), (chatsSnap) => {
+      chatsCount = chatsSnap.size;
+      updateTotalChats();
+      // ...aynı zamanda emotion verilerini işlemek için yukarıdaki kodu tekrar yazmak yerine buraya taşıyabilirsin
+      // Ama şimdilik sadece sayıyı güncelleyelim
+    });
+
+    const unsubscribeFuturesWithCount = onSnapshot(collection(db, 'users', userId, 'futureMessages'), (futureMessagesSnap) => {
+      futuresCount = futureMessagesSnap.size;
+      setFutureMessages(futuresCount);
+      updateTotalChats();
+    });
+
+    // Bu iki yeni aboneliği iptal et
+    return () => {
+      unsubscribeChats();
+      unsubscribeFutureMessages();
+      unsubscribeChatsWithCount();
+      unsubscribeFuturesWithCount();
+    };
   }, [language]);
 
   // Modal açma fonksiyonu
@@ -391,19 +423,19 @@ const styles = StyleSheet.create({
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: 20, fontWeight: '600', color: '#2E7D32' },
   infoIconContainer: {
-  width: 15,
-  height: 15,
-  borderRadius: 10,
-  backgroundColor: '#2E7D32',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginLeft: 8,
-},
-infoIcon: {
-  fontSize: 11,
-  fontWeight: 'bold',
-  color: 'white',
-},
+    width: 15,
+    height: 15,
+    borderRadius: 10,
+    backgroundColor: '#2E7D32',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  infoIcon: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: 'white',
+  },
 
   toggleRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
   toggleText: {
