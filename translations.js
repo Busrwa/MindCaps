@@ -251,7 +251,7 @@ export const translations = {
       },
       {
         title: 'Geçmiş ve Şimdiki Sen ile Sohbet Et',
-        subtitle: 'Sana özel sorularla geçmişte seni etkileyen anıları ve şu anki düşüncelerini anlamaya çalışacağız.',
+        subtitle: 'Sana özel sorular ve senin detaylı cevapların ile geçmişte seni etkileyen anıları ve şu anki düşüncelerini anlamaya çalışacağız. ',
         animation: require('./assets/question.json'),
       },
       {
