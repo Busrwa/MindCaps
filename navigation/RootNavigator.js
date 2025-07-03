@@ -6,6 +6,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import TabNavigator from './TabNavigator';
+import KVKKScreen from '../screens/auth/KVKKScreen'; 
 
 
 const Stack = createNativeStackNavigator();
@@ -17,7 +18,9 @@ export default function RootNavigator() {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
-      <Stack.Screen name="TabNavigator" component={TabNavigator} />
+      <Stack.Screen name="KVKK" component={KVKKScreen} />
+      <Stack.Screen 
+      name="TabNavigator" component={TabNavigator} />
     </Stack.Navigator>
   );
 }

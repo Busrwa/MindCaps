@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import {
   View,
   Text,
@@ -16,8 +16,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { auth } from '../../services/firebase'; 
+import { auth, db } from '../../services/firebase'; 
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +26,8 @@ const RegisterScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [consentGiven, setConsentGiven] = useState(false);  // Onam takibi
+
   const cardPosition = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
@@ -53,28 +56,35 @@ const RegisterScreen = ({ navigation }) => {
     };
   }, [cardPosition]);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!username.trim() || !email.trim() || !password) {
       Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
       return;
     }
-    createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        // Kullanıcı başarıyla oluşturuldu
-        const user = userCredential.user;
-        // Kullanıcı adı güncelle
-        updateProfile(user, { displayName: username })
-          .then(() => {
-            Alert.alert('Başarılı', 'Kayıt işlemi tamamlandı');
-            navigation.navigate('Login');
-          })
-          .catch((error) => {
-            Alert.alert('Profil güncellenemedi', error.message);
-          });
-      })
-      .catch((error) => {
-        Alert.alert('Kayıt Hatası', error.message);
+    if (!consentGiven) {
+      Alert.alert('Onay Gerekli', 'Lütfen KVKK aydınlatılmış onam metnini kabul edin.');
+      return;
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      await updateProfile(user, { displayName: username });
+
+      // Firestore'a onay bilgisi ile kullanıcı kaydı
+      await setDoc(doc(db, 'users', user.uid), {
+        username: username,
+        email: email,
+        consentGiven: true,
+        createdAt: new Date(),
       });
+
+      Alert.alert('Başarılı', 'Kayıt işlemi tamamlandı');
+      navigation.navigate('Login');
+    } catch (error) {
+      Alert.alert('Kayıt Hatası', error.message);
+    }
   };
 
   return (
@@ -137,6 +147,33 @@ const RegisterScreen = ({ navigation }) => {
               secureTextEntry
             />
 
+            {/* KVKK Onam Checkbox + Metin ve Link */}
+            <View style={styles.checkboxRow}>
+  <TouchableOpacity
+    style={styles.checkboxContainer}
+    onPress={() => setConsentGiven(!consentGiven)}
+    activeOpacity={0.7}
+  >
+    <View style={[styles.checkbox, consentGiven && styles.checkboxChecked]}>
+      {consentGiven && <Ionicons name="checkmark" size={18} color="white" />}
+    </View>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={{ flex: 1 }}
+    onPress={() => {
+      setConsentGiven(true); // Onayla
+      navigation.navigate('KVKK'); // Sayfaya git
+    }}
+    activeOpacity={0.7}
+  >
+    <Text style={styles.consentButtonText}>
+      KVKK aydınlatılmış onam metnini <Text style={styles.consentLinkText}>okudum ve kabul ediyorum.</Text>
+    </Text>
+  </TouchableOpacity>
+</View>
+
+
             <TouchableOpacity
               style={styles.registerButton}
               onPress={handleRegister}
@@ -174,12 +211,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
   },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
   backButton: {
     position: 'absolute',
     left: 20,
@@ -195,12 +226,11 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 4,
     zIndex: 10,
-    // top stilini buradan kaldırdık, inline style ile verdik
   },
   card: {
     backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 24,
-    paddingVertical: 20,
+    paddingVertical: 10,
     paddingHorizontal: 24,
     width: width * 0.9,
     alignItems: 'center',
@@ -241,11 +271,45 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: '#fff',
     color: '#333',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    flexWrap: 'wrap',
+    width: '100%',
+  },
+  checkboxContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#2E7D32',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#2E7D32',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#2E7D32',
+  },
+  consentText: {
+    fontSize: 14,
+    color: '#444',
+  },
+  consentLinkText: {
+    fontSize: 14,
+    color: '#2E7D32',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   registerButton: {
     backgroundColor: '#4CAF50',
@@ -274,4 +338,15 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
     fontWeight: '600',
   },
+  consentButtonText: {
+  color: '#2E7D32',
+  fontWeight: '600',
+  fontSize: 14,
+},
+consentLinkText: {
+  color: '#2E7D32',
+  fontWeight: '600',
+  textDecorationLine: 'underline',
+},
+
 });
