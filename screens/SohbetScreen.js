@@ -16,9 +16,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../LanguageContext';
 import { translations } from '../translations';
-import { askAI } from '../services/api'; // API fonksiyonunu import ettik
+import { askAI } from '../services/api';
 
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
+const MAX_PROMPT_LENGTH = 500;
 
 const MessageItem = React.memo(({ item }) => {
   const isUser = item.sender === 'user';
@@ -65,20 +66,41 @@ export default function SohbetScreen({ navigation, route }) {
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardHeight(e.endCoordinates.height);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     });
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
     return () => {
       showSub.remove();
       hideSub.remove();
     };
   }, []);
 
+  const handleChangeText = (text) => {
+    if (text.length <= MAX_PROMPT_LENGTH) {
+      setInputText(text);
+    } else {
+      Alert.alert(
+        t.warning || 'Uyarı',
+        `${MAX_PROMPT_LENGTH} karakterden fazla yazamazsınız!`
+      );
+    }
+  };
+
   const sendMessage = async () => {
     if (!inputText.trim()) return;
 
+    const prompt = inputText.trim().slice(0, MAX_PROMPT_LENGTH);
+
     const userMsg = {
       id: Date.now().toString(),
-      text: inputText.trim(),
+      text: prompt,
       sender: 'user',
     };
 
@@ -87,18 +109,21 @@ export default function SohbetScreen({ navigation, route }) {
 
     const loadingMsg = {
       id: 'loading',
-      text: t.typing || 'Yazıyor...', // çeviri varsa kullan
+      text: t.typing || 'Yazıyor...',
       sender: 'bot',
       isLoading: true,
     };
     setMessages((prev) => [...prev, loadingMsg]);
 
     try {
-      const botText = await askAI(userMsg.text, language);
+      const botText = await askAI(prompt, language);
       setMessages((prev) => [
         ...prev.filter((m) => m.id !== 'loading'),
         { id: (Date.now() + 1).toString(), text: botText, sender: 'bot' },
       ]);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     } catch (error) {
       setMessages((prev) => [
         ...prev.filter((m) => m.id !== 'loading'),
@@ -135,12 +160,18 @@ export default function SohbetScreen({ navigation, route }) {
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <MessageItem item={item} />}
-          contentContainerStyle={{ padding: 16, paddingBottom: 200 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: keyboardHeight + 120 }}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         />
 
-        <View style={[styles.footer, { bottom: keyboardHeight > 0 ? keyboardHeight : TAB_BAR_HEIGHT }]}>
+        <View
+          style={[
+            styles.footer,
+            { bottom: keyboardHeight > 0 ? keyboardHeight : TAB_BAR_HEIGHT },
+          ]}
+        >
           <TouchableOpacity style={styles.endChatButton} onPress={endChat}>
             <Text style={styles.endChatButtonText}>{t.endChat}</Text>
           </TouchableOpacity>
@@ -150,8 +181,10 @@ export default function SohbetScreen({ navigation, route }) {
               style={styles.input}
               placeholder={t.inputPlaceholder}
               value={inputText}
-              onChangeText={setInputText}
+              onChangeText={handleChangeText}
               multiline
+              returnKeyType="send"
+              onSubmitEditing={sendMessage}
             />
             <TouchableOpacity
               style={[styles.sendButton, !inputText.trim() && { opacity: 0.5 }]}
