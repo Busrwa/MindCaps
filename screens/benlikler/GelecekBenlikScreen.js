@@ -23,11 +23,13 @@ import { db, auth } from "../../services/firebase";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
+const TAB_BAR_BASE_HEIGHT = 60;
+
 export default function GelecekBenlik({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const paddingTop = Math.min(Math.max(insets.top, 12), 28);
   const paddingBottom = insets.bottom;
-  const tabBarHeight = 60 + paddingBottom;
+  const tabBarHeight = TAB_BAR_BASE_HEIGHT + paddingBottom;
 
   const { language } = useLanguage();
   const t = translations[language];
@@ -73,8 +75,7 @@ export default function GelecekBenlik({ route, navigation }) {
           language: language,
         }
       );
-      setMessage('');  // MESAJI TEMİZLE
-
+      setMessage("");
 
       Alert.alert(
         t.messageSaved || "Mesaj başarıyla kaydedildi.",
@@ -93,6 +94,7 @@ export default function GelecekBenlik({ route, navigation }) {
     }
   };
 
+  // ScrollView yüksekliği - safe area ve tab bar kadar boşluk bırakıldı
   const scrollViewHeight = screenHeight - paddingTop - tabBarHeight - 32;
 
   return (
@@ -150,11 +152,11 @@ export default function GelecekBenlik({ route, navigation }) {
                 <Text style={styles.buttonTextWhite}>{t.save}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                  style={styles.dualButtonOutlined}
-  onPress={() => {
-    setMessage(''); // mesajı temizle
-    navigation.navigate("BenliklerMain");
-  }}
+                style={styles.dualButtonOutlined}
+                onPress={() => {
+                  setMessage(""); // mesajı temizle
+                  navigation.navigate("BenliklerMain");
+                }}
               >
                 <Text style={styles.buttonTextGreen}>{t.backToHome}</Text>
               </TouchableOpacity>

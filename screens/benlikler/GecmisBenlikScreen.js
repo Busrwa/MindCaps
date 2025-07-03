@@ -61,8 +61,16 @@ const GecmisBenlik = () => {
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardDidShow', (e) => {
       setKeyboardHeight(e.endCoordinates.height);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     });
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
     return () => {
       showSub.remove();
       hideSub.remove();
@@ -168,7 +176,8 @@ const GecmisBenlik = () => {
             data={messages}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => <MessageItem item={item} />}
-            contentContainerStyle={{ padding: 16, paddingBottom: 200 }}
+            contentContainerStyle={{ padding: 16, paddingBottom: keyboardHeight > 180 ? keyboardHeight + 120 : 200 }}
+
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             showsVerticalScrollIndicator={false}
             initialNumToRender={8}
@@ -194,6 +203,8 @@ const GecmisBenlik = () => {
                 value={inputText}
                 onChangeText={setInputText}
                 multiline
+                returnKeyType="send"
+                onSubmitEditing={sendMessage}
               />
               <TouchableOpacity
                 style={[styles.sendButton, !inputText.trim() && { opacity: 0.5 }]}

@@ -138,7 +138,10 @@ export default function SohbetScreen({ navigation, route }) {
       return;
     }
 
-    const formattedMessages = messages.filter((m) => m.sender === 'user').map((msg) => msg.text);
+    const formattedMessages = messages
+      .filter((m) => m.sender === 'user')
+      .map((msg) => msg.text);
+
     navigation.navigate('SohbetAnaliz', { messages: formattedMessages, language });
     setMessages([{ id: '1', text: t.initialMessage, sender: 'bot' }]);
     setInputText('');
@@ -160,7 +163,7 @@ export default function SohbetScreen({ navigation, route }) {
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <MessageItem item={item} />}
-          contentContainerStyle={{ padding: 16, paddingBottom: keyboardHeight + 120 }}
+          contentContainerStyle={{ padding: 20, padding: 16, paddingBottom: keyboardHeight > 180 ? keyboardHeight + 120 : 200  }}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
