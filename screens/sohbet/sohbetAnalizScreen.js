@@ -16,6 +16,9 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { translations } from '../../translations';
 import { analyzeEmotions } from '../../services/api';
 
+import { auth, db } from '../../services/firebase';  // Firebase auth ve db importları
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
 const { width: screenWidth } = Dimensions.get('window');
 
 const emotionColors = {
@@ -145,9 +148,37 @@ export default function SohbetAnalizScreen({ navigation, route }) {
       });
   }, [messages, language]);
 
-  const handleSaveAndFinish = () => {
-    Alert.alert(common.info, t.chatSavedEnded);
-    navigation.goBack();
+  const handleSaveAndFinish = async () => {
+    if (!auth.currentUser) {
+      Alert.alert(common.error, t.notLoggedIn || 'Giriş yapmalısınız.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await addDoc(collection(db, 'users', auth.currentUser.uid, 'chats'), {
+  messages: messages,
+  language: language,
+  emotions: emotionsData.reduce((acc, item) => {
+    const key = Object.keys(emotionNames).find(k => emotionNames[k] === item.name) || item.name;
+    acc[key] = item.population;
+    return acc;
+  }, {}),
+  createdAt: serverTimestamp(),
+});
+
+
+      setLoading(false);
+      Alert.alert(common.info, t.chatSavedEnded);
+
+      // Sohbeti sıfırla ve ana sohbete dön
+      navigation.navigate('SohbetMain', { resetChat: true });
+    } catch (error) {
+      setLoading(false);
+      Alert.alert(common.error, t.saveError || 'Sohbet kaydedilirken hata oluştu.');
+      console.error('Firestore save error:', error);
+    }
   };
 
   const handleFinishOnly = () => {

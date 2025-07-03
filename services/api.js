@@ -1,4 +1,12 @@
-const API_BASE_URL = 'http://192.168.91.216:5000';
+const API_BASE_URL = 'http://192.168.0.13:5000';
+
+async function handleResponse(response, errorMessage) {
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`${errorMessage}: ${errorText}`);
+  }
+  return response.json();
+}
 
 export async function askAI(prompt, language) {
   try {
@@ -7,36 +15,55 @@ export async function askAI(prompt, language) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: prompt, language }),
     });
-    if (!response.ok) throw new Error('Network response was not ok');
-    const data = await response.json();
-    return data.response;
+    const data = await handleResponse(response, 'Failed to ask AI');
+
+    try {
+      return JSON.parse(data.response); // JSON string ise nesne olarak döner
+    } catch {
+      return data.response; // düz metin ise doğrudan döner
+    }
+
   } catch (error) {
-    console.error('API error:', error);
+    console.error('askAI API error:', error);
     throw error;
   }
 }
 
+
 export async function getNextQuestion(index, language) {
-  const res = await fetch(`${API_BASE_URL}/get-next-question?index=${index}&language=${language}`);
-  if (!res.ok) throw new Error('Failed to fetch next question');
-  return res.json();
+  try {
+    const response = await fetch(`${API_BASE_URL}/get-next-question?index=${index}&language=${language}`);
+    return await handleResponse(response, 'Failed to fetch next question');
+  } catch (error) {
+    console.error('getNextQuestion API error:', error);
+    throw error;
+  }
 }
 
 export async function getNowQuestion(index, language) {
-  const res = await fetch(`${API_BASE_URL}/get-now-question?index=${index}&language=${language}`);
-  if (!res.ok) throw new Error('Failed to fetch now question');
-  return res.json();
+  try {
+    const response = await fetch(`${API_BASE_URL}/get-now-question?index=${index}&language=${language}`);
+    return await handleResponse(response, 'Failed to fetch now question');
+  } catch (error) {
+    console.error('getNowQuestion API error:', error);
+    throw error;
+  }
 }
 
 export async function generateResponse({ text, question, language }) {
-  const res = await fetch(`${API_BASE_URL}/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, question, language }),
-  });
-  if (!res.ok) throw new Error('Failed to generate response');
-  return res.json();
+  try {
+    const response = await fetch(`${API_BASE_URL}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, question, language }),
+    });
+    return await handleResponse(response, 'Failed to generate response');
+  } catch (error) {
+    console.error('generateResponse API error:', error);
+    throw error;
+  }
 }
+
 export async function generateFutureMessage(history, language) {
   try {
     const response = await fetch(`${API_BASE_URL}/generate-future-message`, {
@@ -44,11 +71,7 @@ export async function generateFutureMessage(history, language) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ history, language }),
     });
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-    const data = await response.json();
-    return data;
+    return await handleResponse(response, 'Failed to generate future message');
   } catch (error) {
     console.error('generateFutureMessage API error:', error);
     throw error;
@@ -62,10 +85,11 @@ export async function analyzeEmotions(texts, language) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ texts, language }),
     });
-    const json = await response.json();
+    const json = await handleResponse(response, 'Failed to analyze emotions');
     if (json.error) throw new Error(json.error);
     return json;
   } catch (error) {
+    console.error('analyzeEmotions API error:', error);
     throw error;
   }
 }

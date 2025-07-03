@@ -1,7 +1,7 @@
-// services/firebase.js
 import { initializeApp } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';  // Ekle
+import { getFirestore } from 'firebase/firestore';
 
 // Firebase Console'dan aldığın config bilgilerini buraya yapıştır
 const firebaseConfig = {
@@ -15,10 +15,11 @@ const firebaseConfig = {
 
 // Firebase uygulamasını başlat
 const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-// Authentication servisini başlat ve AsyncStorage ile kalıcı oturum ayarla
+// Authentication servisini başlat ve AsyncStorage ile persistansı ayarla
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage)
 });
 
-export { auth };
+export { auth, db };
