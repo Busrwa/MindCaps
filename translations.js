@@ -24,13 +24,13 @@ export const translations = {
     weekly: 'Haftalık',
     monthly: 'Aylık',
     thematicIntensity: 'Tematik Yoğunluk',
-    assistantComment: 'Terapi Asistanı Yorumu',
+    assistantComment: 'Motivasyon Mesajı',
     assistantText:
       'Son 5 seansta kendini ifade etme isteğin arttı. Bu, içsel motivasyonunun yükseldiğine işaret ediyor.\nŞu anda en çok değindiğin tema ‘bağ kurma’.',
     selvesInteraction: 'Benliklerle Etkileşim İstatistiği',
     chatStats: 'Sohbet Etkileşim Sayıları',
-    totalChats: 'Toplam sohbet sayısı',
-    emotionCapsules: 'Duygu kapsülü sayısı',
+    totalChats: 'Toplam Sohbet',
+    emotionCapsules: 'Toplam Zaman Kapsülü',
     freeExpression: 'Serbest Duygu İfadesi',
 
     // ProfilScreen için
@@ -289,6 +289,12 @@ export const translations = {
     backToHome: 'Ana Ekrana Dön',
     errorMessage: 'Bir hata oluştu. Lütfen daha sonra tekrar deneyin.',
     noMessage: 'Mesaj alınamadı.',
+    save: "Kaydet",
+    messageSaved: "Mesaj başarıyla kaydedildi.",
+    saveError: "Mesaj kaydedilirken bir hata oluştu.",
+    emotions: ['Sevinç', 'Üzüntü', 'Korku', 'Öfke', 'Şaşkınlık'],
+    thematicLabels: ['Benlik Saygısı', 'Gelecek Kaygısı', 'Yalnızlık'],
+
   },
 
   en: {
@@ -316,13 +322,13 @@ export const translations = {
     weekly: 'Weekly',
     monthly: 'Monthly',
     thematicIntensity: 'Thematic Intensity',
-    assistantComment: 'Assistant Comment',
+    assistantComment: 'Motivational Message',
     assistantText:
       'In the last 5 sessions, your desire to express yourself has increased. This indicates a rise in your intrinsic motivation.\nThe theme you touched on the most was "connection".',
     selvesInteraction: 'Self Interaction Statistics',
     chatStats: 'Conversation Stats',
     totalChats: 'Total chats',
-    emotionCapsules: 'Emotion capsules',
+    emotionCapsules: 'Total Time Capsule',
     freeExpression: 'Free emotion expression',
 
     // ProfileScreen için
@@ -576,5 +582,10 @@ export const translations = {
     backToHome: 'Back to Home',
     errorMessage: 'An error occurred. Please try again later.',
     noMessage: 'No message received.',
+    save: "Save",
+    messageSaved: "Message saved successfully.",
+    saveError: "An error occurred while saving the message.",
+    emotions: ['Joy', 'Sadness', 'Fear', 'Anger', 'Surprise'],
+    thematicLabels: ['Low Self-Esteem', 'Future Anxiety', 'Loneliness'],
   },
 };

@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Dimensions,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
+import { LineChart, BarChart } from 'react-native-chart-kit';
 import { useLanguage } from '../LanguageContext';
 import { translations } from '../translations';
+import { collection, getDocs } from 'firebase/firestore';
+import { db, auth } from '../services/firebase';
+import { differenceInDays } from 'date-fns';
+import getQuotesByLanguage from '../utils/quotes';
 
 const { width } = Dimensions.get('window');
 
@@ -17,45 +22,163 @@ export default function AnalizScreen() {
   const insets = useSafeAreaInsets();
   const paddingTop = Math.min(Math.max(insets.top, 12), 28);
 
+  const { language } = useLanguage();
+  const t = translations[language];
+  const quotes = getQuotesByLanguage(language);
+
+  const emotions = language === 'tr'
+    ? ['sevinç', 'üzüntü', 'korku', 'öfke', 'tiksinti', 'şaşkınlık']
+    : ['joy', 'sadness', 'fear', 'anger', 'disgust', 'surprise'];
+
+  const thematicLabels = language === 'tr'
+    ? ['Düşük Benlik', 'Gelecek Kaygısı', 'Yalnızlık']
+    : ['Low Self-Esteem', 'Future Anxiety', 'Loneliness'];
+
+  const thematicEmotionWeights = language === 'tr'
+    ? {
+        'Düşük Benlik': { 'üzüntü': 0.6, 'öfke': 0.4 },
+        'Gelecek Kaygısı': { 'korku': 0.7, 'şaşkınlık': 0.3 },
+        'Yalnızlık': { 'üzüntü': 0.5, 'tiksinti': 0.5 },
+      }
+    : {
+        'Low Self-Esteem': { 'sadness': 0.6, 'anger': 0.4 },
+        'Future Anxiety': { 'fear': 0.7, 'surprise': 0.3 },
+        'Loneliness': { 'sadness': 0.5, 'disgust': 0.5 },
+      };
+
+  const [loading, setLoading] = useState(true);
   const [emotionView, setEmotionView] = useState('daily');
   const [thematicView, setThematicView] = useState('weekly');
 
-  const { language } = useLanguage();
-  const t = translations[language];
+  const [dailyScores, setDailyScores] = useState(new Array(emotions.length).fill(0));
+  const [weeklyScores, setWeeklyScores] = useState(new Array(emotions.length).fill(0));
+  const [thematicWeekly, setThematicWeekly] = useState([0, 0, 0]);
+  const [thematicMonthly, setThematicMonthly] = useState([0, 0, 0]);
 
-  const emotions = ['Joy', 'Sadness', 'Fear', 'Anger', 'Surprise'];
-  const dailyScores = [20, 20, 20, 20, 20];
-  const weeklyScores = [50, 50, 50, 50, 50];
+  // Yeni: sohbet sayıları
+  const [totalChats, setTotalChats] = useState(0);
+  const [futureMessages, setFutureMessages] = useState(0);
 
-  const thematicLabels = ['Low Self-Esteem', 'Future Anxiety', 'Loneliness'];
-  const thematicWeekly = [20, 20, 20];
-  const thematicMonthly = [20, 20, 20];
+  const [quote, setQuote] = useState(null);
 
-  const benlikData = [
-    { name: t.futureSelf, population: 20, color: '#6a1b9a' },
-    { name: t.pastSelf, population: 20, color: '#00838f' },
-    { name: t.presentSelf, population: 20, color: '#ef6c00' },
-  ];
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * quotes.length);
+    setQuote(quotes[randomIndex]);
+  }, [language]);
+
+  function calculateThematicScores(emotionScores, weights) {
+    return Object.keys(weights).map(theme => {
+      const emotionWeightMap = weights[theme];
+      let score = 0;
+      Object.entries(emotionWeightMap).forEach(([emotion, weight]) => {
+        const emotionIndex = emotions.indexOf(emotion);
+        if (emotionIndex !== -1) {
+          score += emotionScores[emotionIndex] * weight;
+        }
+      });
+      return Math.round(score);
+    });
+  }
+
+  useEffect(() => {
+    async function fetchEmotionData() {
+      if (!auth.currentUser) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const userId = auth.currentUser.uid;
+
+        // chats ve futuremessage koleksiyonlarını çek
+        const chatsSnap = await getDocs(collection(db, 'users', userId, 'chats'));
+        const futureMessagesSnap = await getDocs(collection(db, 'users', userId, 'futureMessages'));
+
+        // Toplam sohbet sayıları
+        setTotalChats(chatsSnap.size + futureMessagesSnap.size);
+        setFutureMessages(futureMessagesSnap.size);
+
+        const today = new Date();
+        const dailyCounts = {};
+        const weeklyCounts = {};
+        let dailyTotal = 0;
+        let weeklyTotal = 0;
+
+        chatsSnap.forEach((doc) => {
+          const data = doc.data();
+          const createdAt = data.createdAt?.toDate?.();
+          const emotionsData = data.emotions || {};
+
+          if (!createdAt) return;
+
+          const dayDiff = differenceInDays(today, createdAt);
+
+          if (dayDiff <= 30) {
+            Object.entries(emotionsData).forEach(([emotion, value]) => {
+              dailyCounts[emotion] = (dailyCounts[emotion] || 0) + value;
+              dailyTotal += value;
+            });
+          }
+
+          if (dayDiff <= 7) {
+            Object.entries(emotionsData).forEach(([emotion, value]) => {
+              weeklyCounts[emotion] = (weeklyCounts[emotion] || 0) + value;
+              weeklyTotal += value;
+            });
+          }
+        });
+
+        const newDailyScores = emotions.map(e =>
+          dailyTotal > 0 ? Math.round((dailyCounts[e] || 0) * 100 / dailyTotal) : 0
+        );
+        const newWeeklyScores = emotions.map(e =>
+          weeklyTotal > 0 ? Math.round((weeklyCounts[e] || 0) * 100 / weeklyTotal) : 0
+        );
+
+        setDailyScores(newDailyScores);
+        setWeeklyScores(newWeeklyScores);
+
+        setThematicWeekly(calculateThematicScores(newWeeklyScores, thematicEmotionWeights));
+        setThematicMonthly(calculateThematicScores(newDailyScores, thematicEmotionWeights));
+
+      } catch (error) {
+        console.error('Firestore veri çekme hatası:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchEmotionData();
+  }, [language]);
 
   const emotionData = {
-    labels: emotions,
-    datasets: [
-      {
-        data: emotionView === 'daily' ? dailyScores : weeklyScores,
-        color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
-        strokeWidth: 3,
-      },
-    ],
+    labels: emotions.map(e => t.emotions?.[e] || e),
+    datasets: [{
+      data: emotionView === 'daily' ? dailyScores : weeklyScores,
+      color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
+      strokeWidth: 3,
+    }],
   };
 
   const thematicData = {
     labels: thematicLabels,
-    datasets: [
-      {
-        data: thematicView === 'weekly' ? thematicWeekly : thematicMonthly,
-      },
-    ],
+    datasets: [{
+      data: thematicView === 'weekly' ? thematicWeekly : thematicMonthly,
+    }],
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.loadingContainer, { paddingTop }]}>
+          <ActivityIndicator size="large" color="#2E7D32" />
+          <Text style={styles.loadingText}>{t.loading || 'Yükleniyor...'}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -68,7 +191,6 @@ export default function AnalizScreen() {
         contentContainerStyle={[styles.scrollContent, { flexGrow: 1, paddingBottom: 60 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Duygu Haritası */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.emotionMap}</Text>
 
@@ -99,18 +221,13 @@ export default function AnalizScreen() {
               decimalPlaces: 0,
               color: (opacity = 1) => `rgba(46, 125, 50, ${opacity})`,
               labelColor: () => '#2E7D32',
-              propsForDots: {
-                r: '6',
-                strokeWidth: '2',
-                stroke: '#2e7d32',
-              },
+              propsForDots: { r: '6', strokeWidth: '2', stroke: '#2e7d32' },
             }}
             bezier
             style={styles.chart}
           />
         </View>
 
-        {/* Tematik Yoğunluk */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.thematicIntensity}</Text>
 
@@ -146,57 +263,32 @@ export default function AnalizScreen() {
           />
         </View>
 
-        {/* Terapi Asistanı Yorumu */}
         <View style={[styles.section, styles.commentBox]}>
           <Text style={styles.sectionTitle}>{t.assistantComment}</Text>
-          <Text style={styles.commentText}>{t.assistantText}</Text>
+          {quote && (
+            <>
+              <Text style={styles.commentText}>"{quote.text}"</Text>
+              <Text style={[styles.commentText, { fontStyle: 'italic', textAlign: 'right', marginTop: 6 }]}>
+                — {quote.author}
+              </Text>
+            </>
+          )}
         </View>
 
-        {/* Benliklerle Etkileşim */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t.selvesInteraction}</Text>
-
-          <PieChart
-            data={benlikData.map(({ name, population, color }) => ({
-              name,
-              population,
-              color,
-              legendFontColor: '#444',
-              legendFontSize: 14,
-            }))}
-            width={width * 0.9}
-            height={200}
-            chartConfig={{
-              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            }}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft={12}
-            center={[0, 0]}
-            hasLegend
-            style={{ marginVertical: 10 }}
-          />
-        </View>
-
-        {/* Sohbet Etkileşimleri */}
         <View style={[styles.section, styles.interactionsContainer]}>
           <Text style={styles.sectionTitle}>{t.chatStats}</Text>
 
           <View style={styles.interactionsRow}>
             <View style={styles.interactionItem}>
-              <Text style={styles.interactionNumber}>14</Text>
+              <Text style={styles.interactionNumber}>{totalChats}</Text>
               <Text style={styles.interactionLabel}>{t.totalChats}</Text>
             </View>
 
             <View style={styles.interactionItem}>
-              <Text style={styles.interactionNumber}>8</Text>
+              <Text style={styles.interactionNumber}>{futureMessages}</Text>
               <Text style={styles.interactionLabel}>{t.emotionCapsules}</Text>
             </View>
 
-            <View style={styles.interactionItem}>
-              <Text style={styles.interactionNumber}>21</Text>
-              <Text style={styles.interactionLabel}>{t.freeExpression}</Text>
-            </View>
           </View>
         </View>
       </ScrollView>
@@ -205,10 +297,9 @@ export default function AnalizScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F8F8F8',
-  },
+  safeArea: { flex: 1, backgroundColor: '#F8F8F8' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { color: '#2E7D32', fontSize: 16, marginTop: 12 },
   header: {
     alignItems: 'center',
     paddingBottom: 12,
@@ -217,35 +308,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingHorizontal: 20,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    color: '#666',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  scrollContent: {
-    paddingVertical: 24,
-    paddingHorizontal: 16,
-  },
-  section: {
-    marginBottom: 26,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#2E7D32',
-    marginBottom: 10,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
+  headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#2E7D32' },
+  headerSubtitle: { fontSize: 15, color: '#666', marginTop: 4, textAlign: 'center' },
+  scrollContent: { paddingVertical: 24, paddingHorizontal: 16 },
+  section: { marginBottom: 26 },
+  sectionTitle: { fontSize: 20, fontWeight: '600', color: '#2E7D32', marginBottom: 10 },
+  toggleRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
   toggleText: {
     fontSize: 16,
     color: '#666',
@@ -259,41 +327,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     borderBottomColor: '#2E7D32',
   },
-  chart: {
-    borderRadius: 14,
-  },
-  commentBox: {
-    backgroundColor: '#dcedc8',
-    padding: 16,
-    borderRadius: 14,
-  },
-  commentText: {
-    fontSize: 16,
-    color: '#33691e',
-    lineHeight: 22,
-  },
-  interactionsContainer: {
-    backgroundColor: '#e8f5e9',
-    padding: 16,
-    borderRadius: 14,
-  },
-  interactionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  interactionItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  interactionNumber: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#2E7D32',
-  },
-  interactionLabel: {
-    fontSize: 14,
-    color: '#2E7D32',
-    marginTop: 4,
-    textAlign: 'center',
-  },
+  chart: { borderRadius: 14 },
+  commentBox: { backgroundColor: '#dcedc8', padding: 16, borderRadius: 14 },
+  commentText: { fontSize: 16, color: '#33691e', lineHeight: 22 },
+  interactionsContainer: { backgroundColor: '#e8f5e9', padding: 16, borderRadius: 14 },
+  interactionsRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  interactionItem: { alignItems: 'center', flex: 1 },
+  interactionNumber: { fontSize: 28, fontWeight: '700', color: '#2E7D32' },
+  interactionLabel: { fontSize: 14, color: '#2E7D32', marginTop: 4, textAlign: 'center' },
 });

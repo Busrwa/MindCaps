@@ -6,6 +6,9 @@ import RootNavigator from './navigation/RootNavigator'
 
 import { LanguageProvider } from './LanguageContext';
 
+//npx expo start --clear
+//npm start
+
 export default function App() {
   return (
     <SafeAreaProvider>

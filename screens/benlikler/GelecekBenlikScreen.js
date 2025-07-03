@@ -9,22 +9,25 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLanguage } from "../../LanguageContext";
 import { translations } from "../../translations";
-import { generateFutureMessage } from "../../services/api"; 
+import { generateFutureMessage } from "../../services/api";
+
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "../../services/firebase";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-
-const BUTTON_HEIGHT = 56;
 
 export default function GelecekBenlik({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const paddingTop = Math.min(Math.max(insets.top, 12), 28);
   const paddingBottom = insets.bottom;
+  const tabBarHeight = 60 + paddingBottom;
 
   const { language } = useLanguage();
   const t = translations[language];
@@ -52,8 +55,43 @@ export default function GelecekBenlik({ route, navigation }) {
     await fetchFutureMessage();
   };
 
-  const scrollViewHeight =
-    screenHeight - paddingTop - BUTTON_HEIGHT - paddingBottom - 32;
+  const handleSave = async () => {
+    if (!message) {
+      Alert.alert(t.saveError || "Kaydedilecek mesaj yok.");
+      return;
+    }
+    if (!auth.currentUser) {
+      Alert.alert(t.saveError || "Kullanıcı bulunamadı.");
+      return;
+    }
+    try {
+      await addDoc(
+        collection(db, "users", auth.currentUser.uid, "futureMessages"),
+        {
+          message: message,
+          createdAt: serverTimestamp(),
+          language: language,
+        }
+      );
+
+      Alert.alert(
+        t.messageSaved || "Mesaj başarıyla kaydedildi.",
+        "",
+        [
+          {
+            text: "Tamam",
+            onPress: () => navigation.navigate("BenliklerMain"),
+          },
+        ],
+        { cancelable: false }
+      );
+    } catch (error) {
+      console.error("Mesaj kaydedilemedi:", error);
+      Alert.alert(t.saveError || "Mesaj kaydedilirken bir hata oluştu.");
+    }
+  };
+
+  const scrollViewHeight = screenHeight - paddingTop - tabBarHeight - 32;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -90,7 +128,7 @@ export default function GelecekBenlik({ route, navigation }) {
       {showMessage && !loading && (
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={[styles.keyboardAvoidingView, { paddingBottom }]}
+          style={styles.keyboardAvoidingView}
           keyboardVerticalOffset={paddingTop + 44}
         >
           <View style={styles.contentContainer}>
@@ -105,12 +143,17 @@ export default function GelecekBenlik({ route, navigation }) {
               </View>
             </ScrollView>
 
-            <TouchableOpacity
-              style={[styles.backButton, { marginBottom: paddingBottom + 10 }]}
-              onPress={() => navigation.navigate("BenliklerMain")}
-            >
-              <Text style={styles.backButtonText}>{t.backToHome}</Text>
-            </TouchableOpacity>
+            <View style={[styles.buttonRow, { marginBottom: tabBarHeight + 15 }]}>
+              <TouchableOpacity style={styles.dualButtonGreen} onPress={handleSave}>
+                <Text style={styles.buttonTextWhite}>{t.save}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dualButtonOutlined}
+                onPress={() => navigation.navigate("BenliklerMain")}
+              >
+                <Text style={styles.buttonTextGreen}>{t.backToHome}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       )}
@@ -183,7 +226,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     textAlign: "center",
   },
-
   keyboardAvoidingView: {
     flex: 1,
   },
@@ -218,20 +260,37 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     color: "#1B5E20",
   },
-  backButton: {
-    position: "absolute",
-    bottom: 10,
-    left: 20,
-    right: 20,
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  dualButtonGreen: {
+    flex: 1,
     backgroundColor: "#2E7D32",
     paddingVertical: 14,
     borderRadius: 24,
-    zIndex: 10,
+    alignItems: "center",
   },
-  backButtonText: {
+  dualButtonOutlined: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingVertical: 14,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: "#2E7D32",
+    alignItems: "center",
+  },
+  buttonTextWhite: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
-    textAlign: "center",
+  },
+  buttonTextGreen: {
+    color: "#2E7D32",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
