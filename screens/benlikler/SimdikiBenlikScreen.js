@@ -10,6 +10,7 @@ import {
   Keyboard,
   ActivityIndicator,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +22,10 @@ import { useLanguage } from '../../LanguageContext';
 
 import { getNowQuestion, generateResponse } from '../../services/api';
 
+import { sanitizeText } from '../../utils/sanitizeText';
+
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
+const MAX_PROMPT_LENGTH = 500;
 
 const MessageItem = React.memo(({ item }) => {
   const isUser = item.sender === 'user';
@@ -36,7 +40,7 @@ const MessageItem = React.memo(({ item }) => {
         <ActivityIndicator size="small" color="#2E7D32" style={{ marginRight: 8 }} />
       )}
       <Text style={[styles.messageText, isUser ? styles.userText : styles.botText]}>
-        {item.text}
+        {sanitizeText(item.text)}
       </Text>
     </View>
   );
@@ -85,13 +89,21 @@ const SimdikiBenlik = () => {
     fetchNextQuestion(0);
   }, []);
 
+  const handleChangeText = (text) => {
+    if (text.length <= MAX_PROMPT_LENGTH) {
+      setInputText(text);
+    } else {
+      Alert.alert(t.warning, t.tooLongError);
+    }
+  };
+
   const fetchNextQuestion = async (index) => {
     try {
       const data = await getNowQuestion(index, language);
       if (data.question) {
         setMessages((prev) => [
           ...prev,
-          { id: `q-${Date.now()}`, text: data.question, sender: 'bot' },
+          { id: `q-${Date.now()}`, text: sanitizeText(data.question), sender: 'bot' },
         ]);
       } else {
         showEndAnimation();
@@ -105,8 +117,9 @@ const SimdikiBenlik = () => {
   };
 
   const sendMessage = async () => {
-    const userInput = inputText.trim();
-    if (!userInput || isWaiting) return;
+    const rawInput = inputText.trim();
+    if (!rawInput || isWaiting) return;
+    const userInput = sanitizeText(rawInput.slice(0, MAX_PROMPT_LENGTH));
 
     const userMsg = { id: Date.now().toString(), text: userInput, sender: 'user' };
     setMessages((prev) => [...prev, userMsg]);
@@ -129,7 +142,7 @@ const SimdikiBenlik = () => {
 
       setMessages((prev) => [
         ...prev.filter((msg) => !msg.isLoading),
-        { id: `ai-${Date.now()}`, text: data.response, sender: 'bot' },
+        { id: `ai-${Date.now()}`, text: sanitizeText(data.response), sender: 'bot' },
       ]);
 
       const nextIndex = questionIndex + 1;
@@ -177,6 +190,8 @@ const SimdikiBenlik = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={TAB_BAR_HEIGHT}
         >
+          <Text style={styles.disclaimerText}>{t.aiDisclaimer}</Text>
+
           <FlatList
             ref={flatListRef}
             data={messages}
@@ -206,7 +221,7 @@ const SimdikiBenlik = () => {
                 style={styles.input}
                 placeholder={t.placeholderAnswer}
                 value={inputText}
-                onChangeText={setInputText}
+                onChangeText={handleChangeText}
                 multiline
                 returnKeyType="send"
                 onSubmitEditing={sendMessage}
@@ -345,6 +360,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#333333',
+  },
+  disclaimerText: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+    fontStyle: 'italic',
   },
 });
 

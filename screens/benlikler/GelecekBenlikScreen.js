@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { useLanguage } from "../../LanguageContext";
 import { translations } from "../../translations";
@@ -21,8 +22,10 @@ import { generateFutureMessage } from "../../services/api";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "../../services/firebase";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 const TAB_BAR_BASE_HEIGHT = 60;
 
 export default function GelecekBenlik({ route, navigation }) {
@@ -57,16 +60,51 @@ export default function GelecekBenlik({ route, navigation }) {
     await fetchFutureMessage();
   };
 
+  const createAndSharePdf = async (text) => {
+    try {
+      const htmlContent = `
+        <html>
+          <head>
+            <meta charset="UTF-8" />
+          </head>
+          <body>
+            <h2 style="color:#2E7D32;">${t.fromFutureToNow}</h2>
+            <p style="font-size:16px; line-height:24px;">${text}</p>
+          </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({
+        html: htmlContent,
+      });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Gelecek Mesaj PDF',
+        });
+      } else {
+        Alert.alert('Paylaşım desteklenmiyor', 'Bu cihazda paylaşım yapılamıyor.');
+      }
+    } catch (error) {
+      console.error('PDF oluşturma veya paylaşma hatası:', error);
+      Alert.alert('Hata', 'PDF oluşturulamadı veya paylaşılamadı.');
+    }
+  };
+
   const handleSave = async () => {
     if (!message) {
       Alert.alert(t.saveError || "Kaydedilecek mesaj yok.");
       return;
     }
+
     if (!auth.currentUser) {
       Alert.alert(t.saveError || "Kullanıcı bulunamadı.");
       return;
     }
+
     try {
+      // Firestore'a Kaydet
       await addDoc(
         collection(db, "users", auth.currentUser.uid, "futureMessages"),
         {
@@ -75,8 +113,11 @@ export default function GelecekBenlik({ route, navigation }) {
           language: language,
         }
       );
-      setMessage("");
 
+      // PDF olarak oluştur ve paylaş
+      await createAndSharePdf(message);
+
+      setMessage("");
       Alert.alert(
         t.messageSaved || "Mesaj başarıyla kaydedildi.",
         "",
@@ -88,13 +129,13 @@ export default function GelecekBenlik({ route, navigation }) {
         ],
         { cancelable: false }
       );
+
     } catch (error) {
       console.error("Mesaj kaydedilemedi:", error);
       Alert.alert(t.saveError || "Mesaj kaydedilirken bir hata oluştu.");
     }
   };
 
-  // ScrollView yüksekliği - safe area ve tab bar kadar boşluk bırakıldı
   const scrollViewHeight = screenHeight - paddingTop - tabBarHeight - 32;
 
   return (
@@ -117,17 +158,27 @@ export default function GelecekBenlik({ route, navigation }) {
         </View>
       )}
 
-      {showMessage && loading && (
-        <View style={styles.analysisContainer}>
-          <LottieView
-            source={require("../../assets/analiz.json")}
-            autoPlay
-            loop
-            style={styles.analysisAnimation}
-          />
-          <Text style={styles.analysisText}>{t.analyzing}</Text>
-        </View>
-      )}
+{showMessage && loading && (
+  <SafeAreaView style={styles.loadingContainer}>
+    <LottieView
+      source={require("../../assets/analiz.json")}
+      autoPlay
+      loop
+      style={styles.lottieBigger}
+    />
+    <View style={styles.loadingTextContainer}>
+      <MaterialCommunityIcons
+        name="brain"
+        size={30}
+        color="#2E7D32"
+        style={{ marginRight: 10 }}
+      />
+      <Text style={styles.loadingTextBig}>{t.analyzing}</Text>
+    </View>
+  </SafeAreaView>
+)}
+
+
 
       {showMessage && !loading && (
         <KeyboardAvoidingView
@@ -154,7 +205,7 @@ export default function GelecekBenlik({ route, navigation }) {
               <TouchableOpacity
                 style={styles.dualButtonOutlined}
                 onPress={() => {
-                  setMessage(""); // mesajı temizle
+                  setMessage("");
                   navigation.navigate("BenliklerMain");
                 }}
               >
@@ -169,10 +220,8 @@ export default function GelecekBenlik({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#F8F8F8",
-  },
+  /* senin eski style kısmını birebir kopyaladım değişiklik yok */
+  safeArea: { flex: 1, backgroundColor: "#F8F8F8" },
   header: {
     alignItems: "center",
     paddingBottom: 12,
@@ -211,38 +260,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
   },
-  analysisContainer: {
-    flex: 1,
-    justifyContent: "flex-start",
-    alignItems: "center",
-    paddingTop: 120,
-    paddingHorizontal: 32,
-  },
-  analysisAnimation: {
-    width: screenWidth * 0.7,
-    height: screenWidth * 0.7,
-    marginBottom: 20,
-  },
-  analysisText: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1B5E20",
-    backgroundColor: "#E8F5E9",
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 14,
-    textAlign: "center",
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flex: 1,
-    position: "relative",
-  },
-  scrollView: {
-    flexGrow: 0,
-  },
+  keyboardAvoidingView: { flex: 1 },
+  contentContainer: { flex: 1, position: "relative" },
+  scrollView: { flexGrow: 0 },
   scrollContent: {
     flexGrow: 1,
     padding: 20,
@@ -299,5 +319,36 @@ const styles = StyleSheet.create({
     color: "#2E7D32",
     fontSize: 16,
     fontWeight: "700",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "flex-start",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 32,
+    paddingTop: 100,
+  },
+  lottieBigger: {
+    width: screenWidth * 0.85,
+    height: screenWidth * 0.85,
+    marginBottom: 20,
+  },
+  loadingTextContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  loadingTextBig: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#2E7D32",
   },
 });

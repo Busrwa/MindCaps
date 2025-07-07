@@ -64,10 +64,13 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
     signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        Alert.alert('Başarılı', 'Giriş başarılı!');
-        navigation.replace('TabNavigator'); // İstersen ana sayfaya yönlendir
-      })
+  .then((userCredential) => {
+    Alert.alert('Başarılı', 'Giriş başarılı!');
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'TabNavigator' }],
+    });
+  })
       .catch((error) => {
         Alert.alert('Giriş Hatası', error.message);
       });

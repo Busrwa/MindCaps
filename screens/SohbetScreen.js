@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLanguage } from '../LanguageContext';
 import { translations } from '../translations';
 import { askAI } from '../services/api';
+import { sanitizeText } from '../utils/sanitizeText';
 
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 80 : 60;
 const MAX_PROMPT_LENGTH = 500;
@@ -34,7 +35,7 @@ const MessageItem = React.memo(({ item }) => {
         <ActivityIndicator size="small" color="#2E7D32" style={{ marginRight: 8 }} />
       )}
       <Text style={[styles.messageText, isUser ? styles.userText : styles.botText]}>
-        {item.text}
+        {sanitizeText(item.text)}
       </Text>
     </View>
   );
@@ -96,7 +97,7 @@ export default function SohbetScreen({ navigation, route }) {
   const sendMessage = async () => {
     if (!inputText.trim()) return;
 
-    const prompt = inputText.trim().slice(0, MAX_PROMPT_LENGTH);
+    const prompt = sanitizeText(inputText.trim().slice(0, MAX_PROMPT_LENGTH));
 
     const userMsg = {
       id: Date.now().toString(),
@@ -119,7 +120,7 @@ export default function SohbetScreen({ navigation, route }) {
       const botText = await askAI(prompt, language);
       setMessages((prev) => [
         ...prev.filter((m) => m.id !== 'loading'),
-        { id: (Date.now() + 1).toString(), text: botText, sender: 'bot' },
+        { id: (Date.now() + 1).toString(), text: sanitizeText(botText), sender: 'bot' },
       ]);
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -158,6 +159,8 @@ export default function SohbetScreen({ navigation, route }) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={TAB_BAR_HEIGHT}
       >
+      <Text style={styles.disclaimerText}>{t.aiDisclaimer}</Text>
+
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -311,4 +314,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+  disclaimerText: {
+  fontSize: 12,
+  color: '#888',
+  textAlign: 'center',
+  paddingHorizontal: 16,
+  paddingBottom: 4,
+  fontStyle: 'italic',
+},
+
 });
