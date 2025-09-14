@@ -1,8 +1,37 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# VSCode
+.vscode/
 
+# Logs
+logs/
+*.log
+
+# npm / yarn lock (isteğe bağlı, ama genelde tutulur)
+# package-lock.json
+# yarn.lock
+
+# Temporary / cache
+tmp/
+*.tmp
+.cache/
+
+# Firebase
+firebase-debug.log
+
+# Android / iOS build
+android/app/build/
+ios/build/
+
+# Crashlytics / Sentry
+crashlytics-build.properties
+sentry.properties
+
+# Local config files
+*.local.js
+.env
 # dependencies
 node_modules/
-
+babel.config.js
 # Expo
 .expo/
 dist/

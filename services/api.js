@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://192.168.104.216:5000';
+import { API_BASE_URL } from '@env';
 
 async function handleResponse(response, errorMessage) {
   if (!response.ok) {
@@ -16,19 +16,16 @@ export async function askAI(prompt, language) {
       body: JSON.stringify({ text: prompt, language }),
     });
     const data = await handleResponse(response, 'Failed to ask AI');
-
     try {
-      return JSON.parse(data.response); // JSON string ise nesne olarak döner
+      return JSON.parse(data.response);
     } catch {
-      return data.response; // düz metin ise doğrudan döner
+      return data.response;
     }
-
   } catch (error) {
     console.error('askAI API error:', error);
     throw error;
   }
 }
-
 
 export async function getNextQuestion(index, language) {
   try {
